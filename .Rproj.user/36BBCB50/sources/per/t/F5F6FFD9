@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512052494705.000,
+    "dirty" : true,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2597437348",
+    "id" : "F5F6FFD9",
+    "lastKnownWriteTime" : 1512124704,
+    "last_content_update" : 1512130501776,
+    "path" : "~/Tree_Branching/asymmetric_analysis.R",
+    "project_path" : "asymmetric_analysis.R",
+    "properties" : {
+        "cursorPosition" : "10,13",
+        "scrollLine" : "0"
+    },
+    "relative_order" : 2,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

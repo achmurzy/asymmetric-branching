@@ -1,0 +1,22 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512052489963.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "2305672661",
+    "id" : "418DB586",
+    "lastKnownWriteTime" : 1512131446,
+    "last_content_update" : 1512131446142,
+    "path" : "~/Tree_Branching/asymmetric_generation.R",
+    "project_path" : "asymmetric_generation.R",
+    "properties" : {
+        "cursorPosition" : "205,2",
+        "scrollLine" : "179"
+    },
+    "relative_order" : 1,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}
