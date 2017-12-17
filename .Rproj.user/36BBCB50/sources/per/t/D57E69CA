@@ -1,0 +1,23 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512267140780.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "3449517586",
+    "id" : "D57E69CA",
+    "lastKnownWriteTime" : 1512494740,
+    "last_content_update" : 1512494740714,
+    "path" : "C:/Users/Adam/asymmetric-branching/ant_foraging.R",
+    "project_path" : "ant_foraging.R",
+    "properties" : {
+        "cursorPosition" : "71,14",
+        "scrollLine" : "50",
+        "tempName" : "Untitled1"
+    },
+    "relative_order" : 3,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

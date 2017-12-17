@@ -1,0 +1,63 @@
+rm(list=ls())
+gc()
+#harvest and land use test
+#defoliation test part b
+library(ggplot2)
+setwd("C:/Users/Adam/My Documents/Extension-Land-Use-Change/wobegon_PnET/output/PNEToutputsites/Site1")
+
+s<-read.csv("Site.csv");s<-s[,c(1,26,21,22,24)] #s$Fol.gDW.,s$GrossPsn.gC_m2_mo.,s$netPsn.gC_m2_mo.,s$Wood.gDW.
+
+s<-read.csv("Cohort_TSCA_1990.csv");s<-s[,c(1,11,5,8,13)]  #single cohort
+
+s<-subset(s,s$Time>=1990)
+head(s)
+tail(s)
+#s$AGB<-s$Fol.gDW.+s$Wood.gDW.
+###
+sfirst<-subset(s,s$Time>=1990&s$Time<=2031);head(sfirst)
+searly<-subset(s,s$Time>=1999&s$Time<=2031);head(searly)
+#slate<-subset(s,s$Time>=2038&s$Time<=2060);head(slate)
+#smid<-subset(s,s$Time>=2008&s$Time<=2020);(smid)
+
+#Foliage-early
+one<-ggplot(searly, aes(x=Time,y=Fol.gDW.))+ # ,colour=defol
+  geom_line(aes(x=Time, y=Fol.gDW.),lwd=1.0,linetype="solid");one
+#Foliage
+one<-ggplot(s, aes(x=Time,y=Fol.gDW.))+ # ,colour=defol
+  geom_line(aes(x=Time, y=Fol.gDW.),lwd=1.0,linetype="solid");one
+#Wood- early
+one<-ggplot(searly, aes(x=Time,y=Wood.gDW.))+ # 
+  geom_line(aes(x=Time, y=Wood.gDW.),lwd=1.0,linetype="solid");one
+#wood all
+one<-ggplot(s, aes(x=Time,y=Wood.gDW.))+  scale_y_continuous(limits=c(0,NA))+# 
+  geom_line(aes(x=Time, y=Wood.gDW.),lwd=1.0,linetype="solid");one 
+##############################################################################
+#both timestep1
+setwd("C:/Users/achmurzy/Documents/Extension-Land-Use-Change/wobegon_PnET")
+har<-read.csv("biomass-harvest-event-test-log.csv");har[1,]
+har<-har[,c(1,10)];har[1,]
+harOnly<-har
+harLast<-har
+harFirst<-har
+
+setwd("C:/Users/achmurzy/Documents/Extension-Land-Use-Change/wobegon_PnET/output/land-use")
+lu<-read.csv("site-log.csv");lu[1,]
+lu<-lu[,c(1,5,8,35)];lu
+luOnly<-lu
+luFirst<-lu
+luLast<-lu
+
+#Biomass/biomass
+#setwd("C:/Users/Adam/My Documents/Extension-Land-Use-Change/wobegon_PnET/output/biomass")
+#bio<-read.table("biomass.txt",header = TRUE);bio[c(2),] #<-bio[,c(1,10)]
+
+#AGBiomass/biomass
+#agb<-read.table("AGBiomass_.txt",header = TRUE);agb[c(2),] #<-bio[,c(1,10)]
+
+
+######
+#check rasters
+library(raster)
+setwd("C:/Users/Adam/My Documents/Extension-Land-Use-Change/wobegon_PnET/harvest")
+a<-raster("biomassremoved-1.img")
+plot(a)

@@ -1,0 +1,20 @@
+{
+    "collab_server" : "",
+    "contents" : "",
+    "created" : 1512578214995.000,
+    "dirty" : false,
+    "encoding" : "UTF-8",
+    "folds" : "",
+    "hash" : "550196342",
+    "id" : "399F5095",
+    "lastKnownWriteTime" : 1511143505,
+    "last_content_update" : 1511143505,
+    "path" : "~/Extension-Land-Use-Change/wobegon_PnET/biomassharvestLUtest.R",
+    "project_path" : null,
+    "properties" : {
+    },
+    "relative_order" : 4,
+    "source_on_save" : false,
+    "source_window" : "",
+    "type" : "r_source"
+}

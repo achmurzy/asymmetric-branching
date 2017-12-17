@@ -61,7 +61,8 @@ build_child_branches <- function(tree, p_id, counter, pos)
   if(len > tree[nrow(tree),]$LENGTH && rad > tree[nrow(tree),]$RADIUS)
   {
       counter = counter + 1
-      tree[counter,] <- list(order+1, counter, "", paste(p_id), 0, 0, 0, len, rad, beta, gamma, d_beta, d_gamma, 0, 0, TRUE)
+      tree[counter,] <- list(order+1, counter, "", paste(p_id), 0, 0, 0, tree[p_id,]$L_TOT+len, 
+                             len, rad, beta, gamma, d_beta, d_gamma, 0, 0, TRUE)
       p_id = counter
          
       c_1 = counter + 1
@@ -80,38 +81,33 @@ build_child_branches <- function(tree, p_id, counter, pos)
       
       tree[p_id,]$CHILD_IDS <- paste(c_1, c_2, sep="_")
   }else
-  {
-    print("Branch dimensions too small")
-  }
+  {}
   
   return (list("data"=tree, "counter"=counter))
 }
 
-build_asymmetric_tree <- function(trunk=root, leaf=petiole, beta=radius_ratio_def, gamma=length_ratio_def, 
+build_tree <- function(trunk=root, leaf=petiole, beta=radius_ratio_def, gamma=length_ratio_def, 
                                   d_beta=radius_asym_ratio_def, d_gamma=length_asym_ratio_def)
 {
   counter = 1
   
   #Compute dimensions based on trunk and leaves
   #assumes asymmetry parameters positive and less than symmetry parameters
+  if(d_beta < 0 || d_beta > beta || d_gamma < 0 || d_gamma > gamma)
+  {
+    print("insepct branching parameters for valididty")
+    return()
+  }
   len <- log(leaf$L/trunk$L)/log(gamma - d_gamma)
   rad <- log(leaf$R/trunk$R)/log(beta - d_beta)
   order <- ceiling(max(len, rad))
-  
-  #print("Tree info: ")
-  #print("\tMax branch order: ")
-  #print(order)
-  #print("\tRoot dimensions:")
-  #print(trunk)
-  #print("\tLeaf Dimensions:")
-  #print(leaf)
   
   #Estimate rows needed based on minimum branch order
   branches <- sum(2 ^ seq(0, order-1))
   tree <- make_internal_frame(branches+1)
   
-  tree[1,] <- list(1, 1, "2_3", "0", 0, 0, 0, trunk$L, trunk$R, beta, gamma, d_beta, d_gamma, 0, 0, TRUE)
-  tree[nrow(tree),] <- list(1, 1, "", "", 0, 0, 0, leaf$L, leaf$R, beta, gamma, d_beta, d_gamma, 0, 0, FALSE)
+  tree[1,] <- list(0, 1, "2_3", "0", 0, 0, 0, trunk$L, trunk$L, trunk$R, beta, gamma, d_beta, d_gamma, 0, 0, TRUE)
+  tree[nrow(tree),] <- list(1, 1, "", "", 0, 0, 0, leaf$L, leaf$L, leaf$R, beta, gamma, d_beta, d_gamma, 0, 0, FALSE)
   
   c_1 = counter+1
   res <- build_child_branches(tree, 1, counter, TRUE)
@@ -135,6 +131,7 @@ build_asymmetric_tree <- function(trunk=root, leaf=petiole, beta=radius_ratio_de
   return(tree)
 }
 
+#Perform centripetal ordering such that all network tips have order 0
 centripetal_ordering_scheme <- function(tree)
 {
   children <- as.integer(which(tree$CHILD_IDS == "_"))
@@ -143,7 +140,7 @@ centripetal_ordering_scheme <- function(tree)
   zeros <- children != 0
   while(zeros[1])
   {
-    children <- as.integer(get_children(tree[children,]$PARENT_ID))
+    children <- as.integer(split_ids(tree[children,]$PARENT_ID))
     zeros <- children != 0
     
     children <- children[zeros]
@@ -157,51 +154,192 @@ centripetal_ordering_scheme <- function(tree)
 
 #Performs binomial experiment across tree hierarchy with continuous distribution
 #Default to Poisson process - exponential distribution - density function only, or
-tree_distribution <- function(tree, cd=dexp, trials=1)
+tree_distribution <- function(tree, cd, ...)
 {
   size <- range(tree$BRANCH_ORDER)
   tree_mask <- vector(mode="list", length=(size[2]+1))
   names(tree_mask) <- as.character(seq(size[1], size[2]))
-
+  
   for(i in size[1]:size[2])
   {
     rows <- which(tree$BRANCH_ORDER == i)
     n = length(rows)
-    pr = cd(i)
-    tree_mask[[as.character(i)]] <- rbinom(n, trials, prob=pr)
+    pr = do.call(cd, list(i, ...))
+    tree_mask[[as.character(i)]] <- rbinom(n, 1, prob=pr)
+    #print(pr)
+    #print(tree_mask[[as.character(i)]])
   }
   return(tree_mask)
 }
 
-distribute_food <- function(tree)
+#ellipsis operator allows arbitrary number of arguments
+distribute_food <- function(tree, cd, ...)
 {
-  mask <- tree_distribution(tree)
+  mask <- tree_distribution(tree, cd=cd, ...)
   size <- range(tree$BRANCH_ORDER)
   tree <- cbind(tree, FOOD=-1)
   for(i in size[1]:size[2])
   {
     rows <- which(tree$BRANCH_ORDER == i)
     tree[rows,]$FOOD <- mask[[as.character(i)]]
-    print(mask[[as.character(i)]])
   }
   return(tree)
 }
 
-distribute_nests <- function(tree)
+distribute_nests <- function(tree, cd, ...)
 {
-  mask <- tree_distribution(tree)
+  mask <- tree_distribution(tree, cd=cd, ...)
   size <- range(tree$BRANCH_ORDER)
   tree <- cbind(tree, NEST=-1)
   for(i in size[1]:size[2])
   {
     rows <- which(tree$BRANCH_ORDER == i)
     tree[rows,]$NEST <- mask[[as.character(i)]]
-    print(mask[[as.character(i)]])
   }
   return(tree)
 }
 
-build_epiphytic_forest <- function()
+#Can we store the "forest" in a separate structure that contains references to tree frames somehow?
+#This is why people use pointers... need to have access to my names as numbers...
+build_epiphytic_forest <- function(trees, cd, ...)
 {
+  for(i in nrow(trees))
+  {
+    mask <- tree_distribution(trees[i,])
+  }
+}
+
+arboreal_dijkstra <- function(tree, start, end)
+{
+  if(start == end)
+  {return(0)}
+  library(hash)
+  dist <- hash(seq(1, nrow(tree)), rep(Inf, nrow(tree)))
+  current = start
+  dist[as.integer(start)] = 0
   
+  new_op <- paste(tree[start,]$CHILD_IDS, tree[start,]$PARENT_ID, sep="_")
+  new_op <- unlist(strsplit(new_op, split="_"))
+  new_op <- trimws(new_op[which(new_op != "" & new_op != "0")])
+  options <- as.integer(new_op)
+  
+  while(!match(end, options, FALSE))
+  {
+    if(length(new_op) > 0)
+    {.set(dist, new_op, dist[[as.character(current)]]+tree[as.integer(new_op),]$LENGTH)}
+    current <- as.integer(names(which.min(values(dist[as.character(options)]))))
+    
+    new_op <- get_connected_branches(tree[current,])
+    
+    infs <- which(values(dist[new_op]) == Inf)
+    new_op <- new_op[match(names(infs), new_op)]
+    options <- options[which(options != current)]
+    options <- c(as.integer(new_op), options)
+  }
+
+  return(dist[[as.character(current)]]+tree[end,]$LENGTH )
+}
+
+tree_distances <- function(tree)
+{
+  nests <- which(as.logical(tree$NEST))
+  food <- which(as.logical(tree$FOOD))  
+  
+  distances <- matrix(nrow=(length(nests)), ncol=length(food))
+  dimnames(distances) <- list(nests, food)
+  distances <- data.frame(distances)
+  colnames <- food
+  for(i in nests)
+  {
+    n <- which(nests == i)
+    for(j in food)
+    {
+      distances[n,which(food == j)] <- arboreal_dijkstra(tree, i, j)
+    }
+  }
+  return(distances)
+}
+
+#Takes a list, vector whatever of tree distance matrices and collapses them to plot distribution of paths
+plot_distances <- function(tree_distances)
+{
+  dist <- c(0)
+  for(i in seq(1, length(tree_distances)))
+  {
+    dd <- unlist(tree_distances[[i]], use.names = FALSE)
+    dist <- c(dist, dd)
+  }
+  
+  dist <- dist[which(dist != 0)]
+  food_nest <- data.frame(LENGTH=numeric(length(dist)))
+  food_nest$LENGTH <- dist
+  ggplot(food_nest, aes(x=LENGTH)) + geom_histogram(binwidth = 500)
+}
+
+plot_tree_stats <- function(tree)
+{
+  gj <- ggplot(data=tree[which(as.logical(tree$FOOD)),], aes(x=L_TOT)) + geom_histogram()
+  print(gj)
+}
+
+### Simulation trials
+
+symmetric_uniform_tree <- function(trunk=root, leaf=petiole, beta=radius_ratio_def, gamma=length_ratio_def, 
+                                   d_beta=radius_asym_ratio_def, d_gamma=length_asym_ratio_def)
+{
+   sym <- build_tree(trunk, leaf, beta, gamma, d_beta, d_gamma)
+   sym_tree <- centripetal_ordering_scheme(sym)
+   maxmin = range(sym_tree$BRANCH_ORDER)
+   sym_tree <- distribute_food(sym_tree, dunif, maxmin[1], maxmin[2])
+   sym_tree <- distribute_nests(sym_tree, dunif, maxmin[1], maxmin[2])
+   return(sym_tree)
+}
+
+asymmetric_uniform_tree <- function(trunk=root, leaf=petiole, beta=radius_ratio_def, gamma=length_ratio_def, 
+                                    d_beta=0.25, d_gamma=0.25)
+{
+  asym <- build_tree(trunk, leaf, beta, gamma, d_beta, d_gamma)
+  asym_tree <- centripetal_ordering_scheme(asym)
+  maxmin = range(asym_tree$BRANCH_ORDER)
+  asym_tree <- distribute_food(asym_tree, dunif, maxmin[1], maxmin[2])
+  asym_tree <- distribute_nests(asym_tree, dunif, maxmin[1], maxmin[2])
+  return(asym_tree)
+}
+
+#Extreme cases use geometric distributions to scale probabilities downward from root -> tip or vice versa
+symmetric_marginal_tree <- function(trunk=root, leaf=petiole, beta=radius_ratio_def, gamma=length_ratio_def, 
+                                   d_beta=radius_asym_ratio_def, d_gamma=length_asym_ratio_def)
+{
+  sym <- build_tree(trunk, leaf, beta, gamma, d_beta, d_gamma)
+  uni_prob = (1/length(unique(sym$BRANCH_ORDER)))
+  sym <- distribute_nests(sym, dgeom, uni_prob)
+  sym[1,]$NEST <- 1
+  sym_tree <- centripetal_ordering_scheme(sym)
+  sym_tree <- distribute_food(sym_tree, dgeom, uni_prob)
+  return(sym_tree)
+}
+
+asymmetric_marginal_tree <- function(trunk=root, leaf=petiole, beta=radius_ratio_def, gamma=length_ratio_def, 
+                                    d_beta=0.25, d_gamma=0.25)
+{
+  asym <- build_tree(trunk, leaf, beta, gamma, d_beta, d_gamma)
+  uni_prob = (1/length(unique(asym$BRANCH_ORDER)))
+  asym <- distribute_nests(asym, dgeom, uni_prob)
+  asym[1,]$NEST <- 1
+  asym_tree <- centripetal_ordering_scheme(asym)
+  asym_tree <- distribute_food(asym_tree, dgeom, uni_prob)
+  return(asym_tree)
+}
+
+tree_trial <- function(trials = 10, tree_method, ...)
+{
+  trees <- vector(mode="list", length=trials)
+  distances <- vector(mode="list", length = trials)
+  for(i in seq(1, trials))
+  {
+    tree <- do.call(tree_method, list(...))
+    trees [[i]] <- tree
+    distances[[i]] <- tree_distances(trees[[i]])
+  }
+  return(list("trees"=trees, "dist"=distances))
 }

@@ -7,13 +7,18 @@ library(smatr)
 #Changed to include parent IDS, might break everything
 make_internal_frame <- function(rows)
 {
-frame <- data.frame(BRANCH_ORDER=integer(rows), BRANCH_ID=integer(rows), CHILD_IDS=character(rows), PARENT_ID=character(rows), TIPS=integer(rows), V_TOT=numeric(rows), VOLUME = numeric(rows), LENGTH=numeric(rows), RADIUS=numeric(rows), BETA=numeric(rows), GAMMA=numeric(rows), D_BETA=numeric(rows), D_GAMMA=numeric(rows), THETA=numeric(rows), WBE_THETA=numeric(rows), POS=logical(rows), stringsAsFactors=FALSE)
+frame <- data.frame(BRANCH_ORDER=integer(rows), BRANCH_ID=integer(rows), CHILD_IDS=character(rows), PARENT_ID=character(rows), 
+                    TIPS=integer(rows), V_TOT=numeric(rows), VOLUME = numeric(rows), L_TOT=numeric(rows), LENGTH=numeric(rows), RADIUS=numeric(rows), 
+                    BETA=numeric(rows), GAMMA=numeric(rows), D_BETA=numeric(rows), D_GAMMA=numeric(rows), THETA=numeric(rows), 
+                    WBE_THETA=numeric(rows), POS=logical(rows), stringsAsFactors=FALSE)
 return(frame)
 }
 
-get_children <- function(subtree)
+get_connected_branches <- function(branch)
 {
-  return(unlist(strsplit(subtree, split="_")))
+  connect <- paste(branch$CHILD_IDS, branch$PARENT_ID, sep="_")
+  connect <- trimws(unlist(strsplit(connect, split="_")))
+  return(connect[which(connect != "" & connect != "0")])
 }
 
 #Aggregating cylinders by length is causing problems

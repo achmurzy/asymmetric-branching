@@ -5,15 +5,15 @@
     "dirty" : false,
     "encoding" : "UTF-8",
     "folds" : "",
-    "hash" : "2305672661",
+    "hash" : "1525077828",
     "id" : "418DB586",
-    "lastKnownWriteTime" : 1512131446,
-    "last_content_update" : 1512131446142,
-    "path" : "~/Tree_Branching/asymmetric_generation.R",
+    "lastKnownWriteTime" : 1512493392,
+    "last_content_update" : 1512493392887,
+    "path" : "C:/Users/Adam/asymmetric-branching/asymmetric_generation.R",
     "project_path" : "asymmetric_generation.R",
     "properties" : {
-        "cursorPosition" : "205,2",
-        "scrollLine" : "179"
+        "cursorPosition" : "309,18",
+        "scrollLine" : "302"
     },
     "relative_order" : 1,
     "source_on_save" : false,
