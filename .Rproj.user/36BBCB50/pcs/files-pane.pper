@@ -1,6 +1,10 @@
 {
-    "path" : "~/Tree_Branching",
+    "path" : "~/asymmetric-branching",
     "sortOrder" : [
+        {
+            "ascending" : false,
+            "columnIndex" : 1
+        },
         {
             "ascending" : true,
             "columnIndex" : 2
