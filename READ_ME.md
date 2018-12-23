@@ -4,6 +4,5 @@ Three projects here:
 -L-Systems
 
 TO-DO:
--Use the finite form to compute scaling ratios (compute N, use alternative theta expression)
-
+-Double-check that asymmetry is properly aggregated (reconciliing ranges of values in positive/negative asymmetry)
 -Think about how to modularize nodes and collections of nodes. 

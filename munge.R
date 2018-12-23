@@ -46,10 +46,10 @@ computree_munge <- function(x)
 #When we parse this data, every child (bifurcation) iterates the order measure - Topological ordering
 #We greatly increase the maximum branch ordering by applying this algorithm. 
 #Certainly different orderings answer different questions and we may wish to accomodate multiple ones
-oxford_munge <- function(x)
+munge_TreeQSM <- function(x)
 {
-	print(paste("BRANCH_IDS_BEFORE: ", max(x[,11])))
-	print(paste("DEEP_ORDER_BEFORE: ", max(x[,12])))
+	#print(paste("BRANCH_IDS_BEFORE: ", max(x[,11])))
+	#print(paste("DEEP_ORDER_BEFORE: ", max(x[,12])))
 	
 	frame <- make_internal_frame(nrow(x))
 	for(i in 1:nrow(x)) #This loop initializes parent/child relationships
@@ -77,13 +77,13 @@ oxford_munge <- function(x)
 		frame$PARENT_ID[i] = x[i,9]
 		frame$CHILD_IDS[i] = c_ids
 	}
-	print("Starting recursion")
+	#print("Starting recursion")
 
-	result <- oxford_recurse(frame, 1, 1, 1)
+	result <- recurse_TreeQSM(frame, 1, 1, 1)
 	x <- result$data
 	max_ID = max(x$BRANCH_ID)
-	print(paste("BRANCH_IDS_AFTER: ", max(x$BRANCH_ID)))  #Total Branch IDs should go down
-	print(paste("DEEP_ORDER_AFTER: ", max(x$BRANCH_ORDER))) #Total Branch order should go down or stay the same, but doesn't?
+	#print(paste("BRANCH_IDS_AFTER: ", max(x$BRANCH_ID)))  #Total Branch IDs should go down
+	#print(paste("DEEP_ORDER_AFTER: ", max(x$BRANCH_ORDER))) #Total Branch order should go down or stay the same, but doesn't?
 	
 	frame <- make_internal_frame(max_ID)
 	for(i in 1:(max_ID))  #Aggregate cylinders according to branch order for a morphologically meaningful model
@@ -98,7 +98,7 @@ oxford_munge <- function(x)
 	return(frame)
 }
 
-oxford_recurse <- function(data, row_id, count, order)
+recurse_TreeQSM <- function(data, row_id, count, order)
 {
 	#print(paste("Branch ID: ", count))
 	data$BRANCH_ID[row_id] = count
@@ -113,7 +113,7 @@ oxford_recurse <- function(data, row_id, count, order)
 	{
 	  #print(paste("Branch Row: ", row_id))
 	  ind = as.numeric(children[1])
-	  res <- oxford_recurse(data, ind, count, order)
+	  res <- recurse_TreeQSM(data, ind, count, order)
 	  data <- res$data
 	  count = res$count
 	}		
@@ -126,7 +126,7 @@ oxford_recurse <- function(data, row_id, count, order)
 		ind = as.numeric(children[i])
 		#print(paste("Recurse child: ", ind))
 		child_ids = c(child_ids, count+1)
-		res <- oxford_recurse(data, ind, count+1, order+1)  
+		res <- recurse_TreeQSM(data, ind, count+1, order+1)  
 		data <- res$data
 		count = res$count
 		#print(paste("Stack trace child: ", ind))

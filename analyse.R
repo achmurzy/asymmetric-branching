@@ -1,6 +1,4 @@
 library(gdata)
-library(ggplot2)
-library(ggpmisc)
 library(reshape)
 library(smatr)
 
@@ -134,14 +132,16 @@ asymmetric_branching <- function(id, branches, c_v)
 		}		
 	}
 
-	branch$WBE_THETA <- wbe_scaling_exponent(2, branch$BETA, branch$GAMMA)
-	branch$THETA <- asym_scaling_exponent(branch)
-	branch$INVALID = wbe_theta <= 0 || wbe_theta >= 1 
+	branch$WBE_THETA <- nodal_wbe(2, branch$BETA, branch$GAMMA)
+	branch$THETA <- nodal_asym(branch$BETA, branch$GAMMA, branch$D_BETA, branch$D_GAMMA)
+	#branch$INVALID = branch$WBE_THETA <= 0 || branch$WBE_THETA >= 1 || branch$THETA <= 0 || branch$THETA >= 1
+	branch$INVALID = branch$BETA >= 1 || branch$GAMMA >= 1
 	branches[id,] <- branch
 	return (list("data"=branches, "c_v"=c_v))
 }
 
 ##Node-based theta from Bentley et al 2013. Robust to higher-order branching (trifurcations) if needed
+##Assumes symmetry by using 'average scale factors', in Brummer's terminology
 nodal_wbe <- function(n, beta, gamma)
 {
   a = -log(beta) / log(n)
@@ -151,11 +151,12 @@ nodal_wbe <- function(n, beta, gamma)
 }
 
 ##Using Brummer's additive form to segment symmetric (average) and asymmetric (difference) contributions to scaling
-nodal_asym <- function(n, beta, gamma, d_beta, d_gamma)
+##Only applicable to bifurcations
+nodal_asym <- function(beta, gamma, d_beta, d_gamma)
 {
   sym = log(gamma*(beta^2))/log(2)
-	t_1 = (2*branch$D_BETA*branch$D_GAMMA/(branch$BETA*branch$GAMMA))
-	t_2 = ((branch$D_BETA^2)/branch$BETA^2)
+	t_1 = (2*d_beta*d_gamma/(beta*gamma))
+	t_2 = ((d_beta^2)/beta^2)
 	asym = (1 + t_1 + t_2)/log(2) 
 	theta = -(sym + asym)^(-1)
 	return(theta)
@@ -163,25 +164,31 @@ nodal_asym <- function(n, beta, gamma, d_beta, d_gamma)
 
 #Whole-tree scaling exponents computed from average ratios across the network
 #according to Brummer et al 2019 in prep
-whole_tree_scaling <- function(branches)
+whole_tree_scaling <- function(branches, verbose_report = TRUE)
 {
   #Compute branching generations N (network depth) assuming bifurcation
   num_tips = branches[1,]$TIPS
   N = log(num_tips)/log(2)
   
+  branches <- branches[which(!branches$INVALID),]
+  
   beta = mean(branches$BETA, na.rm = TRUE)
   gamma = mean(branches$GAMMA, na.rm = TRUE)
+  
+  #Positive/negative asymmetry may be washing out our aggregation of asymmetry
   d_beta = mean(branches$D_BETA, na.rm = TRUE)
   d_gamma = mean(branches$D_GAMMA, na.rm = TRUE)
   
-  #Volume scaling expressions
+  #Volume scaling expressions - ratio of total volume from sibling branches to parent branches
   sym_vol = 2*(beta^2)*gamma
   asym_vol = 2*(beta^2)*gamma + 4*gamma*d_beta*d_gamma + 2*gamma*(d_beta^2)
   
   #Scaling exponents
   if(abs(1-sym_vol)>0.1)
   {
-    wbe = log(2^N) / (log(2^N) + log(1 - sym_vol^(N+1)) - log((1-sym_vol)*sym_vol^(N)))
+    wbe = log(2^N) / (log(2^N) + 
+                        log(1 - sym_vol^(N+1)) - #Generates NaN - sym_vol^(N+1) > 1 when sym_vol > 1
+                          log((1-sym_vol)*sym_vol^(N))) #Generates NaN - sym_vol > 1
   }
   else
   {
@@ -190,27 +197,56 @@ whole_tree_scaling <- function(branches)
   
   if(abs(1-asym_vol)>0.1)
   {
-    asym = log(2^N)/ (log(2^N) + log(1 - asym_vol^(N+1)) - log((1-asym_vol)*asym_vol^(N)))
+    asym = log(2^N)/ (log(2^N) + 
+                        log(1 - asym_vol^(N+1)) - #Generates NaN
+                          log((1-asym_vol)*asym_vol^(N))) #Generates NaN
   }
   else
   {
     asym = log(2^N) / ((log(N+1)*(2^N)) - N*log(asym_vol))
   }
-  return(list("wbe"=wbe, "asym"=asym))
+  
+  empirical = sma(formula=TIPS~V_TOT, data=branches, log='xy')
+  empirical = empirical$coef[[1]][2,1]
+  
+  if(verbose_report)
+  {
+    print("Finite network correction assuming bifurcation...")
+    print(paste("Total number of tips:", num_tips))
+    print(paste("Inferred network generations:", N))
+    
+    print(paste("Only using valid nodes for whole-tree scaling:", nrow(branches)))
+    
+    print(paste("Average beta:", beta))
+    print(paste("Average gamma:", gamma))
+    print(paste("Average d_beta:", d_beta))
+    print(paste("Average d_gamma:", d_gamma))
+    
+    print(paste("Symmetric volume scaling:", sym_vol))
+    print(paste("Asymmetric volume scaling:", asym_vol))
+  }
+  
+  return(list("beta"=beta, "gamma"=gamma, "d_beta"=d_beta, "d_gamma"=d_gamma, "wbe"=wbe, "asym"=asym, "empirical"=empirical))
 }
 
-branching_analysis <- function(branches)
+branching_analysis <- function(branches, verbose_report = TRUE)
 {
 	out <- asymmetric_branching(1, branches, 0)
 	branches <- out$data
-	print(paste("Volume pruned: ", out$c_v))
-	print(paste("Total volume after pruning: ", branches[1,]$V_TOT))
-  
-	print(paste("Delinquent thetas: ", length(which(branches$INVALID))))
-  print(paste("Candidate thetas: ", nrow(subset(branches, TIPS>1))))
 	
 	#Compute whole-tree scaling ratios - compare to average scaling ratios from nodes	
-  scaling = whole_tree_scaling(branches)
-
-	return (branches)
+  scaling = whole_tree_scaling(branches, verbose_report)
+  
+  if(verbose_report)
+  {
+    print(paste("Volume pruned: ", out$c_v))
+    print(paste("Total volume after pruning: ", branches[1,]$V_TOT))
+    
+    print(paste("Delinquent thetas: ", length(which(branches$INVALID))))
+    print(paste("Candidate thetas: ", nrow(subset(branches, TIPS>1)))) 
+    
+    print(scaling)
+  }
+  
+	return (list("branches"=branches, "scaling"=scaling))
 }
