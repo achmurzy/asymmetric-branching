@@ -1,0 +1,84 @@
+---
+title: "LiDAR-scanned trees indicate that pervasive asymmetry reduces metabolic scaling efficiency"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+#Also assumes our data frame of trees is available
+source("plot.R")
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+**Abstract**
+Metabolic scaling theory attempts to broadly link energy use and life histories of organisms to the internal vascular transport networks supplying cells with materials from the environment. Recently, TLS data has made it possible to broadly sample vascular networks, and achieve fine-scale knowledge of branching architecture in many different environments. Here, a simple model of branching architecture was evaluated against a dataset of over 100 trees from tropical and temperate areas around the world. This theory makes precise quantitative predictions of how total leaf/twig number scales with total tree volume across species. In the idealized model, assuming symmetrical branching allows a simple quantitative summary of scaling patterns. We evaluate this assumption using new theory on asymmetric branching, and find that pervasive asymmetry in tree branching leads to lower metabolic scaling values than predicted. This result is unexpected because current theory assumes that strong selection has optimized the form of vascular networks. Our work is novel because it reveals the potential for TLS data to quantify metabolic properties of trees and forests, and points toward new constraints on tree form and function driven by pervasive asymmetry.        
+
+## Empirical scaling versus predicted symmetric exponents
+
+'Empirical' scaling values along the y-axis are computed via SMA regressions of subtree volume against the distal number of tips, which is the essence of understanding how networks supply service volumes by scaling conduits downward in size. 'WBE' scaling values are computed using the symmetric formula for theta, where whole-tree alpha and beta values are taken as averages of node-level alpha and beta values.
+The slope of the blue line pictured here is our estimate of empirical scaling:
+
+```{r, echo = FALSE}
+plot_volume(test_out$branches, test_out$scaling)
+```
+
+Below is a plot of scaling exponents of single trees across the entire dataset.  
+
+```{r joined_data, echo=FALSE}
+plot_empirical_wbe(joined_data)
+```
+
+To compute the symmetric exponent using a closed form solution, we estimated the total number of branching generations for a given network, N, as log(T)/log(2), where T is the number of terminal elements in the tree. All scaling theories assume an infinitely large network, and so we see that 'larger' trees tend to approach optimal scaling as well:
+
+```{r, echo=FALSE}
+ggplot(joined_data, aes(x=NETWORK_N, y=EMPIRICAL, color=SITE)) + geom_point()
+```
+
+Empirical volume scaling is consistently under-predicted by the symmetric scaling exponent. 
+Asymmetric scaling theories (Brummer et al 2017) predict that symmetric exponents will fail in most biological networks. Including asymmetry can lead to positive or negative deviations from optimal scaling exponents depending on the relative frequency
+of asymmetry types. Asymmetry type is decided by the relative proportions of child branches:
+```{r pressure, echo=FALSE, fig.cap="Two types of asymmetry at the node-level. Figure from Brummer et al 2017"}
+knitr::include_graphics("figures/brummer_asymmetry.png")
+```
+
+Positive asymmetry leads to volume scaling values between 0.5 and 1, while negative asymmetry pushes scaling parameters below 0.75.
+Brummer et al only derive models of asymmetry for networks assuming one or the other asymmetry type, acknowledging that empirical
+networks likely incorporate both types. Among trees in our dataset, negative asymmetry appears to be pervasive, which is counter
+to the expectations of metabolic scaling theory broadly. 
+
+```{r, echo=FALSE}
+plot_asymmetry_proportion(joined_data)
+```
+
+Here, ASYM_FRAC corresponds to the proportion of nodes in a given tree displaying positive asymmetry. Thus, for most trees in our dataset, positive asymmetry exists at a proportion of about 10-40% of nodes. Moreover, empirical scaling is clearly negatively correlated with the frequency of negative asymmetry. Fundamental theory predicts that negative asymmetry will be selected against because it reduces the efficiency of metabolic networks (Brummer et al 2017).
+
+There is reason to believe that plant networks, particularly external architecture represented by branching architecture, should display the highest proportion of negative asymmetry among biological networks. Plant crowns are continually exposed to environmental heterogeneity, causing pruning through a variety of external (disturbance) and internal (shedding) mechanisms. This pruning is routinely accompanied by dynamic resprouting via axillary meristem activation. 
+
+A heuristic measure of asymmetry, path fraction (Devaud-Smith et al 2014) has been shown to capture some of the functional consequences of deviation from theoretically optimal scaling parameters. Here we show the asymmetry proportion against path fraction measured as the average path length in a tree, divided by the maximum length (Avg L) / (Max L):
+
+```{r, echo=FALSE}
+plot_asymmetry_path_frac(joined_data)
+```
+
+Clearly the path fraction is not very sensitive to differences in positive and negative asymmetry. Moreover, it does not predict variation in empirical scaling as successfully as the asymmetry fraction:
+
+```{r, echo=FALSE}
+ggplot(joined_data, aes(x=PATH_FRAC, y=EMPIRICAL, color=SITE)) + geom_point()
+```
+
+This indicates the importance of negative asymmetry in driving scaling patterns across tree species, and may lead to new insights constraining plant form and function.
+
+Despite the limitations of the symmetrical exponent, scaling results accord generally with the expectations of functional constraints on vascular architecture. Below is a plot of symmetric scaling exponents against wood density, with mean trait values at the genus or family level when species data is missing from the BIEN database:
+
+```{r, echo=FALSE}
+ggplot(joined_data, aes(x=WBE, y=WOOD_DENSITY)) + geom_point()
+```
+
+Wood density generally decreases as trees get closer to 3/4 scaling. This is likely due to biomechanical constraints.
+
+Below is a similar plot of leaf area against the predicted symmetric exponent
+
+```{r, echo=FALSE}
+ggplot(joined_data, aes(x=WBE, y=LEAF_AREA)) + geom_point()
+```
+
+Leaf area tends to decrease as trees get closer to 3/4 scaling, which would likely also correspond to twig size and petiole radius. This broadly agrees with the body of knowledge surrounding Corner's Rules.
