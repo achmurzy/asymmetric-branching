@@ -6,79 +6,117 @@ output: html_document
 ```{r setup, include=FALSE}
 #Also assumes our data frame of trees is available
 source("plot.R")
-knitr::opts_chunk$set(echo = TRUE)
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(out.width = '800px')
+knitr::opts_chunk$set(fig.width=24, fig.height=20)
 ```
 
-**Abstract**
-Metabolic scaling theory attempts to broadly link energy use and life histories of organisms to the internal vascular transport networks supplying cells with materials from the environment. Recently, TLS data has made it possible to broadly sample vascular networks, and achieve fine-scale knowledge of branching architecture in many different environments. Here, a simple model of branching architecture was evaluated against a dataset of over 100 trees from tropical and temperate areas around the world. This theory makes precise quantitative predictions of how total leaf/twig number scales with total tree volume across species. In the idealized model, assuming symmetrical branching allows a simple quantitative summary of scaling patterns. We evaluate this assumption using new theory on asymmetric branching, and find that pervasive asymmetry in tree branching leads to lower metabolic scaling values than predicted. This result is unexpected because current theory assumes that strong selection has optimized the form of vascular networks. Our work is novel because it reveals the potential for TLS data to quantify metabolic properties of trees and forests, and points toward new constraints on tree form and function driven by pervasive asymmetry.        
-
-## Empirical scaling versus predicted symmetric exponents
-
-'Empirical' scaling values along the y-axis are computed via SMA regressions of subtree volume against the distal number of tips, which is the essence of understanding how networks supply service volumes by scaling conduits downward in size. 'WBE' scaling values are computed using the symmetric formula for theta, where whole-tree alpha and beta values are taken as averages of node-level alpha and beta values.
-The slope of the blue line pictured here is our estimate of empirical scaling:
+In our dataset, empirical scaling exponents concord with the expected 3/4 optimum but predictions from underlying theory parameterized by branching ratios are smaller than expected
 
 ```{r, echo = FALSE}
-plot_volume(test_out$branches, test_out$scaling)
+plot_scaling_comparison(joined_data)
 ```
 
-Below is a plot of scaling exponents of single trees across the entire dataset.  
+While our dataset is taxonomically diverse, certain species, particularly *Prunus avium*, *Ulmus americana*, and *Quercus petraea* are overrepresented in the dataset. 
+Thankfully, these are also the highest quality trees in the dataset.
 
-```{r joined_data, echo=FALSE}
-plot_empirical_wbe(joined_data)
+```{r, echo = FALSE}
+ggplot(joined_data, aes(x=SPP)) + geom_histogram(stat="count")
 ```
 
-To compute the symmetric exponent using a closed form solution, we estimated the total number of branching generations for a given network, N, as log(T)/log(2), where T is the number of terminal elements in the tree. All scaling theories assume an infinitely large network, and so we see that 'larger' trees tend to approach optimal scaling as well:
+We can check briefly whether flattening the species distribution greatly affects our scaling results. Here, we reduce each species to n=5 with no 
+observable changes in our main scaling results:
+
+```{r, echo = FALSE}
+flattened_species_scaling_comparison(joined_data)
+
+```
+
+The success of the empirical estimate seems to be related to directly estimating volume scaling rather than using a 'tip-counting' approach.
+Here, we regress the total distal tip volume against the total volume for each
+subtree within a tree.
+This is in accord with the foundational assumptions of WBE theory regarding
+the scaling of metabolic service volumes with network size. 
 
 ```{r, echo=FALSE}
-ggplot(joined_data, aes(x=NETWORK_N, y=EMPIRICAL, color=SITE)) + geom_point()
+faceted_volume_plot(joined_data, cylinder_data)
 ```
 
-Empirical volume scaling is consistently under-predicted by the symmetric scaling exponent. 
-Asymmetric scaling theories (Brummer et al 2017) predict that symmetric exponents will fail in most biological networks. Including asymmetry can lead to positive or negative deviations from optimal scaling exponents depending on the relative frequency
-of asymmetry types. Asymmetry type is decided by the relative proportions of child branches:
-```{r pressure, echo=FALSE, fig.cap="Two types of asymmetry at the node-level. Figure from Brummer et al 2017"}
-knitr::include_graphics("figures/brummer_asymmetry.png")
-```
+The question remains why theoretically computed exponents are so far below the
+optimum 3/4 level. We computed exponents using the following formula:
 
-Positive asymmetry leads to volume scaling values between 0.5 and 1, while negative asymmetry pushes scaling parameters below 0.75.
-Brummer et al only derive models of asymmetry for networks assuming one or the other asymmetry type, acknowledging that empirical
-networks likely incorporate both types. Among trees in our dataset, negative asymmetry appears to be pervasive, which is counter
-to the expectations of metabolic scaling theory broadly. 
+$\theta = log(2^N) / (log(2^N) + log(1 - \xi^{N+1)}) - log((1-\xi)\xi^{N}))$
+where $\xi_{s} = 2\gamma\beta^2$ in the symmetric case and
+	$\xi_{a} = 2\gamma\beta^2 + 4\beta\Delta\beta\Delta\gamma + 2\gamma\Delta\beta^2$ in the asymmetric case
+
+For the metabolic scaling exponent $\theta$ to equal 0.75, symmetric traits occupy their own optima, corresponding to $\beta \sim 0.7$ and $\gamma \sim 0.79$. For all trees:
 
 ```{r, echo=FALSE}
-plot_asymmetry_proportion(joined_data)
+faceted_symmetry_plot(cylinder_data)
 ```
 
-Here, ASYM_FRAC corresponds to the proportion of nodes in a given tree displaying positive asymmetry. Thus, for most trees in our dataset, positive asymmetry exists at a proportion of about 10-40% of nodes. Moreover, empirical scaling is clearly negatively correlated with the frequency of negative asymmetry. Fundamental theory predicts that negative asymmetry will be selected against because it reduces the efficiency of metabolic networks (Brummer et al 2017).
-
-There is reason to believe that plant networks, particularly external architecture represented by branching architecture, should display the highest proportion of negative asymmetry among biological networks. Plant crowns are continually exposed to environmental heterogeneity, causing pruning through a variety of external (disturbance) and internal (shedding) mechanisms. This pruning is routinely accompanied by dynamic resprouting via axillary meristem activation. 
-
-A heuristic measure of asymmetry, path fraction (Devaud-Smith et al 2014) has been shown to capture some of the functional consequences of deviation from theoretically optimal scaling parameters. Here we show the asymmetry proportion against path fraction measured as the average path length in a tree, divided by the maximum length (Avg L) / (Max L):
+Averaged symmetrical traits for each tree reflect the observation that area preservation is broadly obeyed and space filling is broadly violated:
 
 ```{r, echo=FALSE}
-plot_asymmetry_path_frac(joined_data)
+plot_symmetrical_volume_scaling(joined_data)
 ```
 
-Clearly the path fraction is not very sensitive to differences in positive and negative asymmetry. Moreover, it does not predict variation in empirical scaling as successfully as the asymmetry fraction:
+One important question is the role asymmetric traits are playing in these networks relative to classical symmetric traits.
 
 ```{r, echo=FALSE}
-ggplot(joined_data, aes(x=PATH_FRAC, y=EMPIRICAL, color=SITE)) + geom_point()
+faceted_asymmetry_plot(cylinder_data)
 ```
 
-This indicates the importance of negative asymmetry in driving scaling patterns across tree species, and may lead to new insights constraining plant form and function.
+Across trees, asymmetric traits cluster around 0 as expected, but are generally less important in determining scaling exponents. Most trees are 'approximately symmetrical' as seen by LiDAR scanners.
 
-Despite the limitations of the symmetrical exponent, scaling results accord generally with the expectations of functional constraints on vascular architecture. Below is a plot of symmetric scaling exponents against wood density, with mean trait values at the genus or family level when species data is missing from the BIEN database:
+The plot below shows that symmetrical traits contribute most to 'volume scaling' $\xi$ by a factor of five or six:
 
 ```{r, echo=FALSE}
-ggplot(joined_data, aes(x=WBE, y=WOOD_DENSITY)) + geom_point()
+ggplot(joined_data) + geom_boxplot(aes(y=SYM_VOL)) + geom_boxplot(aes(y=ASYM_VOL))
 ```
 
-Wood density generally decreases as trees get closer to 3/4 scaling. This is likely due to biomechanical constraints.
-
-Below is a similar plot of leaf area against the predicted symmetric exponent
+Despite the relatively low contributions of asymmetry to overall network scaling, we can also compare the relative contributions of positive and negative asymmetry across each network, potentially account for different mechanisms generating asymmetry in tree morphology:
 
 ```{r, echo=FALSE}
-ggplot(joined_data, aes(x=WBE, y=LEAF_AREA)) + geom_point()
+faceted_volume_scaling_plot(cylinder_data)
 ```
 
-Leaf area tends to decrease as trees get closer to 3/4 scaling, which would likely also correspond to twig size and petiole radius. This broadly agrees with the body of knowledge surrounding Corner's Rules.
+Across all nodes in the dataset, the relative frequency of positive asymmetry is 17%, showing a large bias towards the presence of negative asymmetry in branching. However, for most trees in the dataset the relative contributions of positive and negative asymmetry are approximately equivalent, which may be contributing to 'effective symmetry'
+```{r, echo=FALSE}
+faceted_asymmetry_contribution_plot(cylinder_data)
+```
+Interestingly, the positive/negative asymmetry signal is also reflected in symmetrical scaling traits, where nodes exhibiting negative asymmetry are contributing more to volume scaling, probably due to their greater relative frequency. Furthermore, this greater relative frequency appears to be driven by only a few trees.
+```{r, echo=FALSE}
+faceted_symmetry_contribution_plot(cylinder_data)
+```
+
+
+Volume scaling $\xi$ and the computed network depth $N = log(n_{N})/log(2)$ are the two factors influencing scaling exponents computed from theory. Both factors are at play in determing our results:
+
+```{r, echo=FALSE}
+plot_asymptotic_formula(joined_data)
+```
+
+Theoretical derivations assume that $N \to \infty$ and that $\xi \sim 0.8$. From these results, we conclude that smaller-than-expected symmetrical length scaling ratios $\gamma$ are leading to lower-than-expected estimates of $\theta$, in addition to the small network depth of real trees. 
+
+There is every indication that the formula $N = log(n_{N})/log(2)$ could be underestimating N for asymmetric trees, in particular individuals experiencing disturbance and other forms of branch pruning. 
+
+However, no theory is available for reformulating the concept of branch order or branching ratio $n$ on an asymmetric basis in the context of WBE, though the foundations of such theory might be available already (Horsfield 1974, 1976). 
+
+At this point what I would argue is that deviations in volume scaling reflect real biology / measurement error in LiDAR (variation in length scaling is real/unavoidable) and that deviations in network size are not real, or at least something we could account for in determining 'effective' metabolic scaling.
+
+Here we implement a handful of algorithms for computing N from a network.
+Aside from the asymptotically symmetrical formula above, we implement a 
+branch ordering scheme based on logarithmic binning of branches based on
+geometric characteristics (RADIUS or VOLUME), and algorithms for computing
+N at each node from the N of child branches. In particular:
+$N_{mean} = avg(N_{mean, 1} + N_{mean, 2})
+$N_{min} = min(N_{min, 1} + N_{min, 2})
+$N_{max} = max(N_{max, 1} + N_{max, 2})
+
+$N_{asym} = ln(TIPS) / ln(N_{k}/k
+
+The latter method is an asymmetric version of the above symmetrical computation, which simply recalculates the branching ratio based on the 
+logarithmic binning and the methods of (Horsfield 1974, 1976)

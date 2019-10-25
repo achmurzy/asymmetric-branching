@@ -8,31 +8,31 @@ Instructions:
 for the entire workflow - data from other sources is never modified, filenames are used exactly.
 -Testing/debugging - use the single test tree 'Ery_01' with guide at the top of workflow.R
 
-TO-DO:
--Make column names readable and meaningful so that plotted figures are immediately readable
-          
--Add columns for every conceivable branch ordering scheme - how does TreeQSM order their branches?
-  -We MUST use the geometry of the tree to order these branches in some way that isn't biased.
-    -Use maximum network size (N) estimates from branch ordering schemes, evaluate changes to scaling predictions
-      -Find some way to correct the terminal element size of the network, maybe normalize by the size of the smallest element,
-      or compare to a theoretical prediction of the capillary size.
-      -Branch ordering schemes define terminal elements, then work backwards to identify the main axis. We'd like to do the       opposite, potentially doing something like using the smallest tip, or the longest path length tip, as the "true" tip, and defining other tips from there based on a similarity tolerance to the "true" tip (some kind of normalization).
-      -Problem: WBE is built on the foundation of a topological ordering assumption - and that it precisely describes size scaling
-      -Additional Problem: Both topo and Strahler ordering seriously misbehave under asymmetric conditions
-        -Moving towards the biological meaning of (N), follow (Horn 2000) and graph ln(#branches) against branch order for diff
-          branch ordering schemes to evaluate how branching intensity changes across the tree network
-          
+-Report: use library(rmarkdown) then: 
+render('scaling_report.Rmd')
+
+TO-DO:	
 -Add stats to every analysis included in your Tuesday seminar talk. Confidence intervals on regression data points and
-slopes you're drawing conclusions from.          
+slopes you're drawing conclusions from.
           
--Excluding nodes/branches based on scaling considerations might be affecting non-scaling related computations. Make sure this isn't the case, especially for path fraction - mainly check how your INVALID column is affecting calculations, reducing tips, etc.
+-Excluding nodes/branches based on scaling consideratinos might be affecting non-scaling related computations. 
+Make sure this isn't the case, especially for path fraction - 
+mainly check how your INVALID column is affecting calculations, reducing tips, etc.
 
 -Think about how to modularize nodes and collections of nodes. 
-  -Do a within-tree clustering analysis on raw geometry and scaling ratios to classify
+  -Do a within-tree clustering analysis on raw geometry and scaling ratios to classify.
+  	-Better, some kind of network-based (hierarchical?) clustering to take account of connectivity between branches/scaling ratios to detect reiterated units.
 
+-Port the analysis to treestruct. Provide an automated way to feed columns (and desired operations) to the  tree recursion.
 -Integrate with L-Systems library (applying transformation rules to branch/cylinder data rows)
 
 DONE/COMMENTS:
+-Compare symmetric and asymmetric values for volume scaling. Relative magnitudes?
+	SOLUTION: Symmetric values greatly outweigh asymmetric contributions by 5-6 times. Plot the asymptotic equation to see how this 'nudges' scaling values for a given network N.
+
+-Create a faceting function for comparing distributions of traits across nodes, for large numbers of trees. 'Small multiples'
+	-Need to visualize regression lines not point clouds in small multiples, and sort by the magnitude of the slopes to see influences on global averages of scaling values
+
 Negative asymmetry emerges as pervasive in trees. This might be a more important result than we realize.
 
 -Make sure 0-scaling trees arent fixing your regression in some way. - Yep, this was happening and Brian could tell. Someone's seen too many scaling plots in his life >.<

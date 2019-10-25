@@ -1,0 +1,141 @@
+---
+title: "Estimating the metabolic scaling exponent in LiDAR scans of trees"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+source("plot.R")
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(out.width = '800px')
+```
+
+The WBE framework provides a series of assumptions for reasoning about the scaling of vascular networks in macroscopic organisms. As new data on vascular networks becomes available, many assumptions may need to be relaxed in order to exploit new datasets. One of the foundational assumptions of the WBE model in many iterations is invariance of terminal tip dimensions, such that the smallest metabolic unit (variously: service volume, capillary, petiole) is the same across all vascular networks, indeed all organisms. This assumption allows the WBE model to describe organisms across species within a single size-scaling framework relative to one another (Savage et al 2008).
+
+In LiDAR scanned trees, extreme heterogeneity in detected terminal elements of the network can hamper estimates of metabolic scaling by violating the above assumption. An import caveat is that terminal elements in LiDAR scans are merely the smallest *detected* element within a given branch (i.e. rarely an actual petiole). Consequently, the physiological meaning of a terminal element becomes unclear in this context, evidenced by orders of magnitude variation in the volume of terminal elements (see Figure 1 below). The problem becomes estimating the overall metabolic scaling of a network from a fragment whose distal end is missing or otherwise undersampled.
+
+This requires allowing some variance in the dimensions of distal tips in order to approximate the true distribution of terminal tips and estimate metabolic scaling. We will return to the original statements of the WBE framework surrounding volume scaling in order to move towards this goal.
+
+As an allometric theory describing relationships between relative sizes, WBE is fundamentally a geometric model of how the metabolic capacity $B$ of an organism scales with its total size $M$. In particular, the WBE model has been used to derive Kleiber's Law: $B \propto M^{3/4}$, where $B$ is mass-specific metabolic rate and $M$ is body mass.  
+
+The WBE model allows Kleiber's law to be written in terms of network geometry, where metabolic rate is represented by the number of terminal tips $N_{N}$ and network size is given by the volume of a vascular network $V$, such that:
+ $N_{N} \propto V^{3/4}$. This is referred to hereafter as 'empirical' scaling, as it is a more direct, empirical prediction for the scaling of relative volumes within vasculature that makes minimal assumptions surrounding the underlying geometry of the vascular network. 
+
+ Because WBE hypothesizes that vascular networks are approximately self-similar, fractal-like objects, the above 'empirical' scaling relationship should hold not only for the entire network, but for each sub-tree within that network. Thus, a reasonable test for WBE is to measure empirical scaling as a regression between (sub)network volume and the number of terminal tips distal to that (sub)network. The WBE model predicts that the slope of this regression on log-log axes will be $3/4$, which we can see from the clearer derivation of Savage et al 2008:
+
+The volume of the network is expressed as a hierarchical series of symmetrical pipes ramifying $N$ times down to some minimum size:
+
+$$V_{net} = \sum_{k=1}^{N} n^{k}r_{k}^{2}l_{k}\pi$$
+
+The key to the derivation is expressing the self-similar network as a geometric series built on the invariance of terminal tips.
+
+First, the entire network is stated in terms of invariant terminal tips and each level *k* is written in terms of the lowest level of the network *N*:
+
+$$V_{net} = N_{N}\sum_{k=1}^{N} n^{-(N-k)}r_{N}^{2}l_{N}\pi$$
+
+This step allows each level to be expressed as a constant ratio of the previous term which introduces scaling ratios $\beta$ and $\gamma$, and allows extraction of the dimensions of the terminal tips as $V_{N}$, where $V_{N}=r_{k}^{2}l_{k}\pi$: 
+
+$$V_{net} = N_{N}V_{N}\sum_{k=1}^{N} n^{-(N-k)}\beta^{-2(N-k)}\gamma^{-(N-k)}$$
+$$V_{net} = N_{N}V_{N}\sum_{k=1}^{N}(n\beta^{2}\gamma)^{-(N-k)}$$
+
+The theorem for geometric series of the form:
+
+$$\sum _{k=0}^{n-1}ar^{k}=a\left({\frac {1-r^{n}}{1-r}}\right)$$
+
+is used to obtain:
+
+$$N_{N}V_{N} \left({\frac{1-(n\beta^{2}\gamma)^{N+1}}{1-(n\beta^{2}\gamma)}}\right)$$
+
+where $a = N_{N}V_{N}(n\gamma\beta^{2})^{-N}$ and $r = n\gamma\beta^{2}$. In a space-filling, area preserving network $n\gamma\beta^{2} = n^{-1/3}$ so that:
+
+$$N_{N}V_{N}(n^{-1/3})^{-N}  \left({\frac{1-(n)^{-N/3 -(1/3)}} {1-n^{-1/3}}}\right)$$
+
+then:
+
+$$N_{N}V_{N}(n^{N/3})  \left({\frac{1-n^{(1-N)/3}} 												{1-n^{-1/3}}}\right)$$
+
+Both $V_{N}$ and $C_{0} = \left({\frac{1-n^{(1-N)/3}} 												{1-n^{-1/3}}}\right)$ are assumed to be constants with respect to body size, so the scaling relationship becomes:
+
+$$V_{N}C_{0}N_{N}^{4/3} = V_{net}$$
+
+such that $N_{N} \propto V_{net}^{3/4}$
+
+We use standardized major axis regressions in the following results to estimate the slope of scaling relationships  
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+#test_tree <- function(tree="cyl_data_Ery_01.pcd_t1_m1_D0.5_DA0.075_DI0.025_L3_F5.txt")
+#{
+#  test <- open_TreeQSM(paste("data/results/",tree,sep=""))
+#  test <- munge_TreeQSM(test)
+#  test_out <- branching_analysis(test)
+#  return(test_out)
+#}
+#test <- test_tree()
+non_tips <- which(test$branches$TIPS > 1)
+plot_tips(test$branches[non_tips,], test$scaling$empirical) + theme_minimal(base_size=20)
+```
+
+**Figure 1**: *Erythrophleum fordii*, where here the scaling exponent is computed to be 0.48
+
+
+What should be noted here is the wide variation in volume for branches holding a given number of distal tips. This variation is wider as the network ramifies down to terminal tips, where variation is typically greatest. This leads to uniformly shallow slopes across our dataset, and appears to replicate the results of previous attempts at quantifying empirical scaling, similarly hindered by splayed distributions at distal ends of vascular networks (Bentley 2013, Brummer 2019).
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+non_tips <- which(cylinder_data$TIPS > 1)
+faceted_tips(tree_data, cylinder_data[non_tips,]) + theme_minimal(base_size=20)
+```
+
+**Figure 2**: Empirical volume scaling for all trees
+
+An intuitive solution is to reformulate the regression in order to relate the volume of terminal tips to the total volume of the (sub)tree that supplies it, predicting that $\sum V_{N} \propto V_{net}^{3/4}$. This would allow us to directly account for variation in terminal tip volumes. While there is currently no theoretical basis for this scaling relationship, it appears to provide better results for empirical scaling, clustering around the $3/4$ expectation.
+
+ ```{r, echo = FALSE, fig.width=12, fig.height=10}
+non_tips <- which(test$branches$TIPS > 1)
+plot_tip_volume(test$branches[non_tips,], test$scaling$empirical_vol) + theme_minimal(base_size=20)
+```
+
+**Figure 3**: The same *Erythrophleum fordii*, plotting distal tip volume $\sum V_{N,k}$ rather than number of distal tips $N_{N,k}$ for each subtree *k*. Note: the x-axis $V_{net,k}$ is the total volume of a (sub)tree minus the volume of the distal tips, so that the plotted variables are independent of one another.
+
+Directly accounting for variation in distal tip volumes along the y-axis by quantifying child tip volume effectively collapses the subtrees along a straight line, consequently steepening scaling exponents.
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+non_tips <- which(cylinder_data$TIPS > 1)
+faceted_tip_volume(tree_data, cylinder_data[non_tips,]) + theme_minimal(base_size=20)
+```
+
+**Figure 4**: Distal volume scaling regression for all trees in the dataset
+
+The intuition that accounting for variation in tip volumes leads to more reasonable scaling exponents may lead us toward a more principled scaing-based argument for quantifying empirical scaling from noisy data. 
+
+Returning to the original scaling argument, we have
+
+$$V_{N}C_{0}N_{N}^{4/3} = V_{net}$$
+
+One approach to allowing variation in terminal tips is to replace $V_{N}$ with a series of random variables $\overline{r_{k}}^{2} \overline{l_{k}} \pi = \overline{V_{N}}$, where $\overline{V_{N}}$ now represents the average terminal tip volume for a vascular network. Substituting we have
+
+$$\overline{V_{N}}N_{N}^{4/3} = V_{net}$$
+$$N_{N}^{4/3} = V_{net}/\overline{V_{N}}$$
+$$N_{N} \propto (V_{net}/\overline{V_{N}})^{3/4}$$
+
+where $\overline{V_{N}}$ is included in the scaling relationship because the average volume of terminal tips may very within and across vascular networks. We computed this correction to the empirical scaling by quantifying $\overline{V_{N}}$ as the geometric mean in volumes of distal terminal tips for a given (sub)tree
+
+ ```{r, echo = FALSE, fig.width=12, fig.height=10}
+non_tips <- which(test$branches$TIPS > 1)
+plot_average_volume(test$branches[non_tips,], test$scaling$empirical_vol_mean) + theme_minimal(base_size=20)
+```
+
+**Figure 5**: The same *Erythrophleum fordii*, plotting the number of distal terminal tips against the subtree volume corrected for the average tip size
+
+The correction does have the effect of reducing spread in lower size classes, effectively steepening scaling exponents across the dataset while remaining far off from the predictions of the WBE framework.
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+non_tips <- which(cylinder_data$TIPS > 1)
+faceted_average_volume(tree_data, cylinder_data[non_tips,]) + theme_minimal(base_size=20)
+```
+
+**Figure 6**: Average tip volume correction for all trees in the dataset
+
+While permitting variability into the estimate of empirical scaling in relative volumes appears to improve predictions, much of the splay and spread around terminal/distal elements remains in the above regressions, hampering estimates of scaling relationships. More theory may be required to fully assess the consequences of incorporating the random variables $\overline{r_{k}}, \overline{l_{k}}$ into the derivation of the WBE framework. 
+
+Making length, radii and volumes random variables may modify the behavior of scaling ratios such as $\beta, \gamma, n$ that modify the behavior of the network in unexpected ways. In particular, we may need to look more closely at how $\overline{V_{N}}$ interacts with the geometric series to influence overall predictions for the scaling of terminal tips $N_{N}$. 

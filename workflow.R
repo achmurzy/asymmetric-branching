@@ -2,7 +2,8 @@
 #cyl_data_Ery_01.pcd_t1_m1_D0.15_DA0.06_DI0.02_L3_F3.txt
 #cyl_data_Pinus03.pcd_t1_m1_D0.15_DA0.06_DI0.02_L3_F3.txt
 #
-#test <- open_TreeQSM("data/results/cyl_data_Ery_01.pcd_t1_m1_D0.15_DA0.06_DI0.02_L3_F3.txt")
+
+#test <- open_TreeQSM("data/results/cyl_data_1_sans_feuilles.pcd_t1_m1_D0.55_DA0.085_DI0.035_L3_F5.txt")
 #test <- munge_TreeQSM(test)
 #test_out <- branching_analysis(test)
 
@@ -11,6 +12,12 @@
 source("munge.R")
 source("analyse.R")
 source("plot.R")
+
+save_workflow <- function(tree_data, cylinder_data)
+{
+  save(tree_data, file='tree_data.Rdata')
+  save(cylinder_data, file='cylinder_data.Rdata')
+}
 
 tree_metadata <- read.csv("data/tree_metadata.csv")
 tree_metadata$FILENAME <- as.character(tree_metadata$FILENAME)
@@ -41,7 +48,7 @@ cylinder_data <- munge_TreeQSM(cylinder_data)
 
 #The branching analysis outputs the external form of the tree data for whole-tree scaling analysis and trait reconciliation
 out <- branching_analysis(cylinder_data)
-cyl_data <- out$branches
+cylinder_data <- out$branches
 scaling <- out$scaling
 cylinder_data$FILENAME <- rep(stripped_names[1], nrow(cylinder_data))
 
@@ -61,9 +68,12 @@ tree_data <- data.frame(FILENAME=character(num_trees), TREE_VOLUME=numeric(num_t
                     TREE_AREA=numeric(num_trees), DBH_QSM=numeric(num_trees), DBH_CYL=numeric(num_trees), BETA=numeric(num_trees),
                     GAMMA=numeric(num_trees), D_BETA=numeric(num_trees), D_GAMMA=numeric(num_trees), FIB_R=numeric(num_trees),
                     FIB_L=numeric(num_trees), WBE=numeric(num_trees), NODE_WBE=numeric(num_trees), THETA=numeric(num_trees), 
-                    NODE_THETA=numeric(num_trees), EMPIRICAL=numeric(num_trees), NETWORK_N=integer(num_trees), 
-                    CI_MIN=numeric(num_trees), CI_MAX=numeric(num_trees),
-                    PATH_FRAC=numeric(num_trees), ASYM_FRAC=numeric(num_trees), stringsAsFactors = FALSE)
+                    NODE_THETA=numeric(num_trees), SYM_VOL=numeric(num_trees), ASYM_VOL=numeric(num_trees), NETWORK_N=integer(num_trees),
+                    N_ASYM=numeric(num_trees), N_MEAN=numeric(num_trees), N_MIN=numeric(num_trees), N_MAX=numeric(num_trees),
+			              EMPIRICAL=numeric(num_trees), EMPIRICAL_VOL=numeric(num_trees), EMPIRICAL_VOL_MEAN=numeric(num_trees),
+                    EMPIRICAL_VOL_TIP=numeric(num_trees), EMPIRICAL_TIP_MEAN=numeric(num_trees),
+		 	              CI_MIN=numeric(num_trees), CI_MAX=numeric(num_trees), CI_VOL_MIN=numeric(num_trees), CI_VOL_MAX=numeric(num_trees),		
+		                CI_MA_MIN=numeric(num_trees), CI_MA_MAX=numeric(num_trees), PATH_FRAC=numeric(num_trees), ASYM_FRAC=numeric(num_trees), stringsAsFactors = FALSE)
 tree_data[1,] <- c(stripped_names[1], scan(tree_data_names[1])[1:11], as.numeric(unlist(scaling)))
 tree_column_names <- c("TREE_VOLUME", "TRUNK_VOLUME", "BRANCH_VOLUME", "TREE_HEIGHT", "TRUNK_LENGTH", "BRANCH_LENGTH", "NUM_BRANCHES", 
                        "MAX_BRANCH_ORDER", "TREE_AREA", "DBH_QSM", "DBH_CYL")
@@ -83,7 +93,7 @@ for(i in seq(2, length(cylinder_data_names)))
   
   cyl_data <- open_TreeQSM(cylinder_data_names[i])
   cyl_data <- munge_TreeQSM(cyl_data)
-  out <- branching_analysis(cyl_data, verbose_report = FALSE)
+  out <- branching_analysis(cyl_data, verbose_report = TRUE)
   cyl_data <- out$branches
   scaling <- out$scaling
   cyl_data$FILENAME <- rep(stripped_names[i], nrow(cyl_data))
@@ -92,13 +102,6 @@ for(i in seq(2, length(cylinder_data_names)))
   #19 columns as specified above
   tree_data[i,] <- c(stripped_names[i], scan(tree_data_names[i])[1:11], as.numeric(unlist(scaling)))
   #tree_data[i,13:18] <- unlist(scaling)
-  
-  #plot_volume(cyl_data, scaling, stripped_names[i])
-  #plot_exponents(cyl_data, scaling, stripped_names[i])
-  #plot_asymmetry(cyl_data, stripped_names[i])
-  #plot_symmetry(cyl_data, stripped_names[i])
-  #plot_lengths(cyl_data, stripped_names[i])
-  #plot_radii(cyl_data, stripped_names[i])
 }
 
 #cast everything back to its proper type because R is horrible
@@ -114,12 +117,12 @@ joined_data <- merge(tree_data, tree_metadata, by="FILENAME", all=FALSE)
 joined_data <- joined_data[which(joined_data$FILENAME != ""),]
 
 #Finite size correction is super tiny - within 95% of 3/4
-smallest = which(min(joined_data$TREE_VOLUME, na.rm=TRUE) == joined_data$TREE_VOLUME)
-small_tips = exp(joined_data[smallest,]$NETWORK_N * log(2))
-largest = which(max(joined_data$TREE_VOLUME, na.rm=TRUE) == joined_data$TREE_VOLUME)
+#smallest = which(min(joined_data$TREE_VOLUME, na.rm=TRUE) == joined_data$TREE_VOLUME)
+#small_tips = exp(joined_data[smallest,]$NETWORK_N * log(2))
+#largest = which(max(joined_data$TREE_VOLUME, na.rm=TRUE) == joined_data$TREE_VOLUME)
 
-correction = 1 - (2^(-1/3) * small_tips^(-1/3) / log(joined_data[largest,]$TREE_VOLUME / joined_data[smallest,]$TREE_VOLUME))
-
+#correction = 1 - (2^(-1/3) * small_tips^(-1/3) / log(joined_data[largest,]$TREE_VOLUME / joined_data[smallest,]$TREE_VOLUME))
+browser()
 
 source("traits.R")
 species_names <- paste(joined_data$GENUS, joined_data$SPECIES)

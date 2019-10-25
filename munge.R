@@ -1,3 +1,6 @@
+source('dplfit/dplfit.R')
+#source('dplfit/figures.R')
+
 open_TreeQSM <- function(file)
 {
   return(read.csv(file, sep="\t", header=FALSE))
@@ -64,26 +67,34 @@ munge_TreeQSM <- function(x)
 	result <- recurse_TreeQSM(frame, 1, 1, 1)
 	x <- result$data
 	max_ID = max(x$BRANCH_ID)
-	
 	frame <- make_internal_frame(max_ID)
-	
+
 	#Aggregate cylinders according to branch order for a morphologically meaningful model
 	#Looks at raw fitted TreeQSM output to see which cylinders we're talking about here
 	#Corresponds to the objects in the branch_data output of TreeQSM workflow
 	for(i in 1:(max_ID))  
 	{
 		cylinders <- subset(x, x$BRANCH_ID == i)
+		frame$BRANCH_ID[i] = i
 		frame$LENGTH[i] = sum(cylinders$LENGTH)
 		frame$RADIUS[i] = mean(cylinders$RADIUS)
 		frame$VOLUME[i] = pi * frame$LENGTH[i] *(frame$RADIUS[i]^2) 
 		frame$BRANCH_ORDER[i] = cylinders$BRANCH_ORDER[1]
 		frame$HACK_ORDER[i] = cylinders$HACK_ORDER[1]
 		frame$STRAHLER_ORDER[i] = cylinders$STRAHLER_ORDER[1]
-		frame$CHILD_IDS[i]=cylinders$CHILD_IDS[nrow(cylinders)]
+		frame$CHILD_IDS[i]=cylinders$CHILD_IDS[nrow(cylinders)] 
 		children <- as.integer(unlist(strsplit(frame$CHILD_IDS[i], split="_")))
 		if(length(children) > 0)
 		  frame[children,]$PARENT_ID = i
 	}
+
+	#Use an exponential binwidth of 2 - start with a symmetrical bifurcation assumption
+	lambda = 2
+	tree_log_bin <- log_bin(frame$RADIUS,lambda=lambda)	
+	#Have to manually compute every bin between the minimum and maximum sizes
+	orders = log(tree_log_bin/min(frame$RADIUS)) / log(lambda)
+	frame$BIN_ORDER <- floor(orders)
+
 	return(frame)
 }
 
