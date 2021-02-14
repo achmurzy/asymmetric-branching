@@ -1,0 +1,81 @@
+---
+title: "Estimating the metabolic scaling exponent in LiDAR scans of trees, Part 3"
+output: html_document
+header_includes: \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+source("plot.R")
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(out.width = '800px')
+```
+
+Previously we showed that the total volume of terminal tips (or leaves) $V_{N}^{L} = \sum V_{N} = V_{N}n_{N}$ so that
+\begin{align}
+V_{N}^{L} = V_{N}r_{0}^{2}/r_{N}^{2} = C_{V}r_{0}^{2} \propto M^{3/4} 
+\end{align}
+where $C_{V} = V_{N}/r_{N}^{2}$. This result emerges from the scaling of terminal tips distal to a given branch k:
+\begin{equation}
+n_{k}^{L} = n_{k}/n_{N} = n^{N-k} = (r_{k}/r_{N})^{2}
+\end{equation}
+The scaling of tip volumes within a vascular network is thus a result of invariance in the branching ratio $n$ and the dimensions of terminal tips $V_{N}$. 
+However, the issue at hand remains the discrepany between $n_{N}$ and $V_{N}^{L}$, the total volume of tips (or leaves). Only the latter of these scales approximately to the 3/4 power of the network in LiDAR scanned trees, while theory predicts that both should exhibit 3/4 power scaling with network size. 
+
+The assumption of invariance of terminal tips effectively leads to the assumption that $n_{N} \propto V_{N}^{L}$. Below we test this assumption for all trees in the dataset by instead assuming the following scaling relationship 
+\begin{equation}
+\overline{V_{N}}^{x}n_{N}^{y} \propto V_{N}^{L}
+\end{equation} 
+In this case, we allow terminal tips to vary by measuring the average tip size $\overline{V_{N}}$ using a geometric average, and allowing both terms to scale with the overall size of the network. Consequently, we predict that $\overline{V_{N}}^{x}n_{N}^{y} \propto M^{3/4}$ as well, and test this prediction.
+
+Beginning with the average terminal tip size, below is $xlog(\overline{V_{N}}) = log(V_{N}^{L}) - ylog(n_{N})$. Theory predicts that $x = 1$, but slight positive scaling is observed across all trees in the dataset
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+non_tips <- which(cylinder_data$TIPS > 1)
+faceted_tip_volume_scaling(tree_data, cylinder_data[non_tips,]) + theme_minimal(base_size=20)
+```
+
+Likewise, the relationship $ylog(n_{N}) = log(V_{N}^{L}) - xlog(\overline{V_{N}})$ is shown with the corresponding scale factor $y = 1$ predicted, but showing slightly steeper positive scaling across the dataset.
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+non_tips <- which(cylinder_data$TIPS > 1)
+faceted_tip_count(tree_data, cylinder_data[non_tips,]) + theme_minimal(base_size=20)
+```
+
+To summarize these new factors:
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+plot_proportion_comparison(tree_data) + theme_minimal(base_size=20)
+```
+
+Here, we can see that the scaling factor $X$ describing the scaling of mean terminal tip size overlaps with 1.0. The scaling factor $Y$, the scaling of terminal tip count
+related to the branching ratio throughout the tree, was always greater than 1 across all trees in the dataset, with a mean significantly higher than the theoretical prediction.
+
+With these new scaling exponents, we can return to check our original expression $\overline{V_{N}}^{x}n_{N}^{y} \propto V_{N}^{L}$. Directly substituting $x$ and $y$ we expect a direct proportionality when correcting for the scaling of tip count and mean tip size for each tree:
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+non_tips <- which(cylinder_data$TIPS > 1)
+faceted_corrected_proportion(tree_data, cylinder_data[non_tips,]) + theme_minimal(base_size=20)
+```
+
+The new scaling exponents re-center and effectively recover the isometric scaling predicted from the parameters $V_{N}$ and $n_{N}$. 
+Because $V_{N}^{L} \propto M^{3/4}$ gives good results across the dataset, we can use the new scale factors to compute a corrected version of scaling in terminal tips, as
+
+$$\overline{V_{N}}^{x}n_{N}^{y} \propto M^{3/4},$$
+
+where for each tree $x, y$ are the computed regression slopes given above. 
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+non_tips <- which(cylinder_data$TIPS > 1)
+faceted_corrected_scaling(tree_data, cylinder_data[non_tips,]) + theme_minimal(base_size=20)
+```
+
+The corrected scale factor above is centered around the 3/4 expectation in the same way as $V_{N}^{L}$, with apparently extreme edge cases from high variability leading to widely divergent predictions for some trees. These deviations indicate that both the distribution of terminal tip sizes $\overline{V_{N}}$ and the branching ratio $n$ (represented as the total number of terminal elements $n_{N}$) scale in a way not anticipated by theory. 
+These results provide some insight into the discrepancy between $V_{N}^{L}$ and $n_{N}$ in terms of measuring the metabolic scaling exponent, $\theta$. It also points to the instability of classical parameters from the WBE framework, in particular the notion of the branching ratio.  
+
+Predicting metabolic scaling from underlying node-level branching traits is the next major theoretical challenge posed by the WBE framework. Are the branching ratio and terminal tip variance causing closed-form expressions for $\theta$ in terms of branching traits to fail?
+
+Regarding the scaling of $V_{N}^{L}$ and $n_{N}$, which is the more fundamental measurement of metabolic scaling? Should we seek to further characterize the distribution of terminal tip sizes, and seek to measure or redefine the branching ratio in the context of within-tree heterogeneity? Or is the scaling of total terminal tip volume the most convenient heuristic measurement of $\theta$? We may not know until more physiological data on whole-tree respiration, using gas exchange or tetrazolium-based methods, becomes available.
+
+
+

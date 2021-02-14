@@ -1,0 +1,52 @@
+---
+title: "Recovering theta from volume scaling exponents"
+output: pdf_document
+header_includes: \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+source("../plot.R")
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+#knitr::opts_chunk$set(out.width = '800px')
+```
+
+Using the volume scaling methodology for calculating empirical metabolic scaling exponents, we can compare our newer, more accurate results to those derived from the predictions of WBE theory using branching traits:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+plot_volume_scaling_comparison(tree_data)
+```
+
+With a slope of 0.48, our calculated exponents weakly predict the empirical exponents coming out of the volume scaling approach. This at least shows some consistency between theoretical and empirical approaches, and may indicate that our theta values are merely systematically biased downward rather than entirely incorrect. 
+
+We are left to explore the distribution of volume scaling slopes for answers about the true theta values for these trees. A basic and encouraging result is that volume scaling is independent of the total size of the tree:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+volume_scaling_by_size(tree_data)
+```
+
+By genus:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+plot_volume_scaling_species(tree_data)
+``` 
+
+Variation in volume scaling exponents could reflect real life-history variation, which would correlate with other traits along a fast-slow continuum. In this case, lower exponents (closer to 0) represent a slow-growing strategy, while exponents closer to 1 would reflect a fast-growing strategy. We attempt to test for this relationship below using traits from the BIEN database. First, our life history traits will be represented by wood density and SLA, which should exhibit a negative correlation along the fast-slow continuum. Unfortunately, we are not able to recover this relationship from the species present in our dataset:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+plot_sla_wood_density(tree_data)
+``` 
+
+Correspondingly, the relationships with our volume scaling exponent are quite weak. 
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+volume_scaling_by_wood_density(tree_data)
+```
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+volume_scaling_by_sla(tree_data)
+```
+
+The relationship with SLA is not in the right direction we would predict based on life-history theory.
+

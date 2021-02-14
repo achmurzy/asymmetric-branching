@@ -7,24 +7,18 @@ Instructions:
 -Run 'workflow.R' to pull all of the fit QSMs and perform a complete scaling analysis. Filenames are unique tree identifiers
 for the entire workflow - data from other sources is never modified, filenames are used exactly.
 -Testing/debugging - use the single test tree 'Ery_01' with guide at the top of workflow.R
+-Instead, load the import data frames:
+tree_data <- load('tree_data.RData')
+cylinder_data <- load('cylinder_data.RData')
 
 -Report: use library(rmarkdown) then: 
 render('scaling_report.Rmd')
 
 TO-DO:	
--Add stats to every analysis included in your Tuesday seminar talk. Confidence intervals on regression data points and
-slopes you're drawing conclusions from.
-          
--Excluding nodes/branches based on scaling consideratinos might be affecting non-scaling related computations. 
-Make sure this isn't the case, especially for path fraction - 
-mainly check how your INVALID column is affecting calculations, reducing tips, etc.
 
--Think about how to modularize nodes and collections of nodes. 
-  -Do a within-tree clustering analysis on raw geometry and scaling ratios to classify.
-  	-Better, some kind of network-based (hierarchical?) clustering to take account of connectivity between branches/scaling ratios to detect reiterated units.
-
--Port the analysis to treestruct. Provide an automated way to feed columns (and desired operations) to the  tree recursion.
--Integrate with L-Systems library (applying transformation rules to branch/cylinder data rows)
+-Combine your markdown analyses into a draft manuscript with plots. 
+-Start from the very beginning, going through the derivation as shown in Savage et al 2010. Report on the characteristics of the dataset in relation to all the fundamental parameters and predictions of the theory.
+-Eventually, you will get to the section on branching ratios (n) versus terminal top volumes (V_n). Hopefully a way forward will present itself.
 
 DONE/COMMENTS:
 -Compare symmetric and asymmetric values for volume scaling. Relative magnitudes?

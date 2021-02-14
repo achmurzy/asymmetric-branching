@@ -1,0 +1,82 @@
+---
+title: "Estimating the metabolic scaling exponent in LiDAR scans of trees, Part 2"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+source("plot.R")
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(out.width = '800px')
+```
+
+In West et al 1998, a large series of predictions are made for the scaling of plant form and function using the WBE framework.
+One such argument includes an expression for the total leaf area distal to a given (sub)network $k$:
+
+$$A_{k}^{L} = C_{L}r_{k}^{2}$$
+
+where $C_{L} = a_{L}/r_{N}^{2}$, an invariant quantity defined in terms of the average area of a leaf and the radius of terminal elements.
+From this we can show that the total leaf area in a network $A_{0}^{L} \propto M^{3/4}$ since $r_{0} \propto M^{3/8}$:
+
+$$A_{0}^{L} \propto r_{0}^{2} = M^{2 * (3/8)} = M^{3/4}$$
+
+Ultimately this argument emerges from the scaling of terminal tips distal to a given branch k:
+
+$$n_{k}^{L} = n_{k}/n_{N} = n^{N-k} = (r_{k}/r_{N})^{2}$$
+
+Which implies that the scaling of leaf area is a simple multiplication of average leaf area $a_{L}$ by the number of terminal tips
+derived from the invariance of terminal tips:
+
+$$A_{0}^{L} = a_{L}n_{0}^{L} = a_{L}n_{N}$$
+
+An effectively identical argument can be made for the scaling of terminal tip volumes using the invariant tip volume $V_{N}$, where
+the total volume of terminal tips (or leaves) $V_{N}^{L} = \sum V_{N} = V_{N}n_{N}$ so that
+
+$$V_{N}^{L} = V_{N}r_{0}^{2}/r_{N}^{2} = C_{V}r_{0}^{2} \propto M^{3/4},$$ 
+
+where $C_{V} = V_{N}/r_{N}^{2}$.
+In all cases, M is taken as any measure of network size, in this case Volume (V). So M denotes network volume in the context of LiDAR scans henceforth.
+This provides a helpful foundation in metabolic scaling for our previous results, providing a theoretical groundwork for predicting that the total volume of
+terminal tips should scale to the 3/4 power. More importantly, it provides a partial explanation as to why the total volume of terminal elements provides
+estimates of metabolic scaling closer to the theoretical optimum of 3/4 than simply counting the number of terminal tips present in the network. 
+
+The issue at hand remains the discrepany between $n_{N}$ and $V_{N}^{L}$, the total volume of tips (or leaves). The assumption of invariance of terminal tips effectively
+leads to the assumption that $n_{N} \propto V_{N}^{L}$. Below we test this assumption for all trees in the dataset to see how variance in tips biases results, first showing this for our single example tree:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+non_tips <- which(test$branches$TIPS > 1)
+plot_tip_proportion(test$branches[non_tips,], test$scaling$tips_volume) + theme_minimal(base_size=20)
+```
+
+**Figure 1**: The same *Erythrophleum fordii*, showing observed proportionality between terminal tip count and total tip volume across all subtrees within the individual. 
+
+The observed positive scaling shows that terminal tip volume increases faster than terminal tip count, contrary to the predictions of WBE which expects isometry. This necessarily stems from variance in terminal tips, in particular the presence of terminal tips in larger size classes. Positive scaling of terminal tip volume from observed terminal tip count in LiDAR stems is consistent across the dataset:
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+non_tips <- which(cylinder_data$TIPS > 1)
+faceted_tip_proportion(tree_data, cylinder_data[non_tips,]) + theme_minimal(base_size=20)
+```
+
+**Figure 2**: Scaling of terminal tip proportions across LiDAR scanned trees, exhibiting universal positive scaling.
+
+The data show that in LiDAR scans, we should expect a different scaling relationship between terminal tips and total tip volume, given by $n_{N}^{\nu} \propto V_{N}^{L}$, where $\nu > 1$. In addition, we restate the original theoretical prediction of WBE as $n_{N} \propto M^{\vartheta}$, where $\vartheta < 0.75$ which is the *biased metabolic scaling exponent* based on previous observations of tip scaling. From these modifications we can say that $n_{N}^{\nu} \propto M^{3/4}$, and that consequently $\nu\vartheta = \theta \approx 0.75$. In this case, $\nu$ and $\vartheta$ represent independent expressions of the relationship of terminal tips number to terminal tip volume and total network volume (respectively) across the entire tree; on the other hand, $\theta$ is the **true metabolic scaling exponent** which can be be retrieved from measuring tip volumes as shown above. 
+
+```{r, echo = FALSE, fig.width=18, fig.height=15}
+plot_tip_comparison(tree_data)
+```
+
+**Figure 3**: Distribution of scaling exponents $\vartheta$ estimated from terminal tip counts, $\theta$ estimated from terminal tip volumes, and $\nu$, the proportionality between terminal tip count and total terminal tip volume. The product of the red and blue distributions is equal to the green distribution
+
+In fact, using the relationship $\nu\vartheta = \theta \approx 0.75$ we are able to exactly recover the scaling exponent of $V_{N}^{L} \propto M^{3/4}$. Below is the distribution of values we obtain from plotting $\theta - \vartheta\nu$: 
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+gg <- ggplot(tree_data, aes(x=EMPIRICAL_VOL - (EMPIRICAL*TIPS_VOLUME))) + geom_density()
+print(gg)
+```
+
+**Figure 4**: Taking the difference $\theta - \vartheta\nu$ clusters tightly around 0 and reveals the logical relationship between these scaling factors.
+
+Recalling that $\vartheta$ was orginally an expression of the metabolic scaling exponent in the WBE framework in terms of the number of terminal tips, we are effectively quantifying the degree of bias in $\vartheta$ using $\nu$, allowing us to exactly retrieve the 'true' scaling value of the network. Further work should investigate how $\nu$ may be related to whole-tree architecture and branching asymmetry, or the quality of LiDAR scans as relates to capturing the distribution of branch sizes within a tree crown.
+
+These results demonstrate that directly measuring network volume represents a robust alternative for measuring the metabolic scaling exponent in the WBE framework. This method is robust in the sense that it appears to apply well to fragmented, under-samped vascular networks exhibiting wide variation in branch geometry across orders of magnitude, especially at the distal ends of the network where metabolic activity disproportionately occurs. Further improvements

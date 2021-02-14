@@ -1,0 +1,26 @@
+Filling the manuscript:
+
+Start with Subtree regressions- done
+Show distribution of tree tip count regressions - done
+Show distribution of tree volume count regressions - done
+Show as one plot, show deviation in branching trait exponent results - done
+Show that branching traits still broadly agree with theory - done
+
+*needs new analyses below here*
+Quantify tip variability and relate to volume scaling results, show how tip volume scales with tip count to account for discrepancy
+
+Relate variability in scaling exponents to life history characteristics, align with prior work
+	-Result: Architectural traits ordinate alone, separate from LES/allocation traits. May be related to size
+	-Add measured terminal element dimensions
+
+New analyses:
+
+Test Corner's Rules using terminal elements as measures of leaf size
+Dive into branch angle data, add to ordinations for life history information
+	-Relationship to tip size (variability) and branch length, branch diameter and wood density - Corner's Rule #1
+	-As tip size (variability) increases, Corner predicts lengths will increase, diameter will increase, and wood density will decrease
+	-So, terminal volume should be related to terminal beta/gamma, and wood density
+
+New references:
+Poorter et al 2014 Trait correlation networks
+Valladers & Ninemets 2008 Shade Tolerance

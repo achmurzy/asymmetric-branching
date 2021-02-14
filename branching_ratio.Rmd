@@ -1,0 +1,40 @@
+---
+title: "Branching ratios in LiDAR scanned trees"
+output: pdf_document
+header_includes: \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+getwd()
+source("../plot.R", chdir=True)
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+knitr::opts_chunk$set(out.width = '800px')
+```
+
+In the context of the WBE framework, the parameter $n$ describes the branching ratio. This parameter, also called the furcation number, describes how volume is partitioned as vascular networks ramify down to smaller and smaller size classes. One physiological interpretation is that $n$ is an integer, leading to a convenient representation of the vascular network hierarchy
+
+\begin{equation}
+n_{k} = nn_{k+1} 
+\end{equation}
+
+where n_{k} is the number of vascular tubes at level $k$. Thus, the branching ratio is the source of self-similarity in WBE networks and defines other geometric self-similarities in the form of branching traits. Previous iterations of the WBE model have assumed that $n = 2$, which is the case of a perfectly symmetrical bifurcating network. Most trees in nature appear to bifurcate regularly (as opposed to trifurcation, etc.), but the branching ratio has posed an obstacle to asymmetrical formulations of WBE by helping enforce the equal distribution of parent volume/mass between child branches.
+
+Our goal here is to explore the definition of the branching ratio, its relationship with other quantities in vascular networks, and quantify these within LiDAR scanned trees. One import expression states the number of terminal tips of a network in terms of the branching ratio and the maximum number of ramifications, or branching generations $N$ within a tree
+
+\begin{equation} \label{eq:2}  
+n_{N} = n^{N}
+\end{equation}
+
+The quantities $n_{N}$ and $N$ are directly available from LiDAR scans before invoking any assumptions from WBE. From there, we can compute the branching ratio for each subtree by rearranging \ref{eq:2} as
+
+\begin{equation} 
+n = n_{N}^{1/N}
+\end{equation} 
+
+```{r, echo = FALSE, fig.width=24, fig.height=20}
+faceted_branching_ratio_distributions(cylinder_data)
+```
+
+This method shows branching ratios universally below $n=2$, which would indicate that trees generally lack the number of terminal tip elements predicted by the WBE framework, and important source of asymmetry in these data.

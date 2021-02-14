@@ -1,0 +1,41 @@
+---
+title: "Terminal tip variability in LiDAR scans of trees"
+output: pdf_document
+header_includes: \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+source("../plot.R")
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+#knitr::opts_chunk$set(out.width = '800px')
+```
+
+Now we turn to analysing the variance in size of the terminal tips. The first most striking feature is the massive variation in tip variation exhibited across trees, and the effect of size on tip variability:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+tip_variability_by_size(tree_data)
+```
+Variance in tip size varys across fifteen orders of magnitude. In a perfectly symmetrical tree, we would expect the variability in terminal tips to be 0. 
+
+Our primary goal here is to understand the size-dependence of tip variability so as not to conflate the total size of the trees in the dataset with the variability in tip sizes. Hopefully this will generate some insight into volume scaling exponents, to the extent that variation in volume scaling exponents is influenced by terminal tip variability.
+Accordingly, tip variability exhibits scaling with the total size of trees:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+faceted_variance_volume_scaling(tree_data, cylinder_data)
+``` 
+
+An important pattern emerges: the variance in terminal tip sizes increases with the size of subtrees as more and more outliers are included in the tree's distribution of tips. This scaling pattern ends up being related to our phenomenological volume scaling exponents:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+variance_volume_tip_scaling(tree_data, cylinder_data)
+```
+
+As well as simply the variability in the tips themselves:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+whole_tree_variance_tip_scaling(tree_data, cylinder_data)
+```
+
+What are the quantitative effects of variability in tip volume on volume scaling exponents? How can we compartmentalize the effects of tree size on total variability?

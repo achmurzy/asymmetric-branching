@@ -9,7 +9,11 @@ make_internal_frame <- function(rows)
 frame <- data.frame(BRANCH_ORDER=integer(rows), HACK_ORDER=integer(rows), STRAHLER_ORDER=integer(rows), BIN_ORDER=integer(rows),
 					BRANCH_ID=integer(rows), CHILD_IDS=character(rows), PARENT_ID=character(rows), 
 					N_SYM=numeric(rows), N_ASYM=numeric(rows), N_MEAN=numeric(rows), N_MIN=numeric(rows), N_MAX=numeric(rows), 
-					TIPS=integer(rows), TIPS_VOL=numeric(rows), TIPS_MEAN=numeric(rows), VOL_MEAN=numeric(rows), A_BR = numeric(rows),
+					TIPS=integer(rows), TIPS_VOL=numeric(rows), RAW_TIPS_VOL=numeric(rows), RAW_V_TOT=numeric(rows), 
+					FULL_TIPS=numeric(rows), FULL_TIPS_VOL=numeric(rows), FULL_V_TOT=numeric(rows), 
+					TIPS_MEAN=numeric(rows), TIPS_VAR=numeric(rows), TIPS_CV=numeric(rows), TIPS_GEO_CV=numeric(rows),
+					RADS_MEAN=numeric(rows), VOL_MEAN=numeric(rows), A_BR = numeric(rows),
+                    CHILD_LENGTHS=numeric(rows), CHILD_RADII=numeric(rows), CHILD_VOLS=numeric(rows), 
                     V_TOT=numeric(rows), VOLUME = numeric(rows), L_TOT=numeric(rows), LENGTH=numeric(rows), RADIUS=numeric(rows), 
                     FIB_R=numeric(rows), FIB_L=numeric(rows), BETA=numeric(rows), GAMMA=numeric(rows), D_BETA=numeric(rows), D_GAMMA=numeric(rows), 
                     THETA=numeric(rows), WBE_THETA=numeric(rows), POS=logical(rows), INVALID=logical(rows), stringsAsFactors=FALSE)
@@ -39,24 +43,34 @@ asymmetric_branching <- function(id, branches, c_v, children)
 	child_n = length(children)
 	
 	#Get path length before recursions terminate
-	p_id <- branch$PARENT_ID
-	parent_l = 0
-	if(p_id != "")
-	  parent_l = branches[p_id,]$L_TOT  
-	branch$L_TOT <- parent_l + branch$LENGTH
+	#p_id <- branch$PARENT_ID
+	#parent_l = 0
+	#if(p_id != "")
+	#  parent_l = branches[p_id,]$L_TOT  
+	#branch$L_TOT <- parent_l + branch$LENGTH
 	
-	if(child_n == 0)
+	if(child_n == 0 | branch$INVALID)
 	{
-		branch$TIPS_VOL = branch$VOLUME / min_element
 		branch$TIPS = 1
+		branch$FULL_TIPS = 1
+
+		branch$TIPS_VOL = branch$VOLUME / min_element
+		branch$RAW_TIPS_VOL = branch$VOLUME
+		branch$FULL_TIPS_VOL = branch$VOLUME
+
+		branch$RAW_V_TOT = 0
+		branch$V_TOT = 0 #branch$VOLUME - Exclude terminal branch volume from V_TOT to ensure empirical regressions are independent
+		branch$FULL_V_TOT
+
 		branch$N_SYM = 0
 		branch$N_ASYM = 0
 		branch$N_MEAN = branch$BIN_ORDER#0
 		branch$N_MIN = branch$BIN_ORDER#0
 		branch$N_MAX = branch$BIN_ORDER#0
 		
-		branch$V_TOT = 0 #branch$VOLUME - Exclude terminal branch volume from V_TOT to ensure empirical regressions are independent
-		
+		branch$TIPS_VAR = NA
+		branch$TIPS_CV = NA
+		branch$TIPS_GEO_CV = NA
 		branch$FIB_R = NA
 		branch$FIB_L = NA
 		branch$BETA = NA	
@@ -79,7 +93,7 @@ asymmetric_branching <- function(id, branches, c_v, children)
 
 		branch$TIPS = branches[ind,]$TIPS
 	
-		branch$V_TOT = branches[ind,]$V_TOT + branch$VOLUME
+		branch$V_TOT = branches[ind,]$V_TOT + (branch$VOLUME / min_element)
 
 		branch$BETA = branches[ind,]$RADIUS/branch$RADIUS
 		branch$GAMMA = branches[ind,]$LENGTH/branch$LENGTH
@@ -97,8 +111,13 @@ asymmetric_branching <- function(id, branches, c_v, children)
 		lengths = vector(length = child_n)
 		radii = vector(length = child_n)
 		volumes = vector(length = child_n)
+
+		vol_tots = vector(length = child_n)
+		raw_volumes = vector(length = child_n)
 		tips = vector(length = child_n)
 		tips_vol = vector(length = child_n)
+		raw_tips_vol = vector(length = child_n)
+		
 		n_mean = vector(length = child_n)
 		n_min = vector(length = child_n)
 		n_max = vector(length = child_n)
@@ -111,14 +130,19 @@ asymmetric_branching <- function(id, branches, c_v, children)
 			out <- asymmetric_branching(ind, branches, c_v, c())
 			branches <- out$data
 			c_v = out$c_v
+			
 			#Append subtree child_ids to immediate child_ids
 			children <- c(children, out$children)
 			
 			tips[i] = branches[ind,]$TIPS
 			tips_vol[i] = branches[ind,]$TIPS_VOL
-			volumes[i] = branches[ind,]$V_TOT
+			raw_tips_vol[i] = branches[ind,]$RAW_TIPS_VOL
+			vol_tots[i] = branches[ind,]$V_TOT
+			raw_volumes[i] = branches[ind,]$RAW_V_TOT
+
 			lengths[i] = branches[ind,]$LENGTH
 			radii[i] = branches[ind,]$RADIUS
+			volumes[i] = branches[ind,]$VOLUME 
 			
 			n_mean[i] = branches[ind,]$N_MEAN
 			n_min[i] = branches[ind,]$N_MEAN
@@ -131,14 +155,29 @@ asymmetric_branching <- function(id, branches, c_v, children)
 		ind_2 = 2		
 		if(child_n > 2)
 		{
-		  volsort = sort(volumes)
+		  volsort = sort(vol_tots)
 		  ind_1 = child_n
 		  ind_2 = child_n-1
-		  c_v = c_v + sum(volumes[-c(ind_1, ind_2)])
+		  pruned_volume = sum(vol_tots[-c(ind_1, ind_2)])
+		  c_v = c_v + pruned_volume
 		}
 		
 		branch$TIPS = tips[ind_1] + tips[ind_2]
-		branch$TIPS_VOL = tips_vol[ind_1] + tips_vol[ind_2]
+		branch$FULL_TIPS = sum(tips)
+
+		branch$TIPS_VOL = tips_vol[ind_1] + tips_vol[ind_2]	#+ tips_vol[i]
+		branch$RAW_TIPS_VOL = raw_tips_vol[ind_1] + raw_tips_vol[ind_2]
+		branch$FULL_TIPS_VOL = sum(raw_tips_vol)
+
+		#These should be summed in the same way as the FULL_TIPS/FULL_TIP_VOL variables...
+		#branch$CHILD_LENGTHS = lengths[ind_1] + lengths[ind_2]
+		#branch$CHILD_RADII = radii[ind_1] + radii[ind_2]
+		#branch$CHILD_VOLS = volumes[ind_1] + volumes[ind_2]
+
+		#These should be summed in the same way as the FULL_TIPS/FULL_TIP_VOL variables...
+		branch$CHILD_LENGTHS = sum(lengths)
+		branch$CHILD_RADII = sum(radii)
+		branch$CHILD_VOLS = sum(volumes)
 
 		#Reminder that these are still 'symmetrical' in that size differences are averaged over when we iterate
 		#the N counter by 1 at each bifurcation. In a symmetrical tree these would all be equivalent
@@ -146,16 +185,31 @@ asymmetric_branching <- function(id, branches, c_v, children)
 	  	branch$N_MIN = min(n_min) + 1
 	  	branch$N_MAX = max(n_max) + 1
 		
-		branch$V_TOT = volumes[ind_1] + 
-				volumes[ind_2] + 
+		branch$V_TOT = vol_tots[ind_1] + 
+				vol_tots[ind_2] + 
 				(branch$VOLUME/min_element)
+
+		branch$RAW_V_TOT = raw_volumes[ind_1] + 
+				raw_volumes[ind_2] + branch$VOLUME
+
+		branch$FULL_V_TOT = sum(raw_volumes) + branch$VOLUME
 
 		child_tips = children[which(branches[children,]$TIPS == 1)]
 		
-		avg_tip_vol = gm_mean(branches[child_tips,]$TIPS_VOL, na.rm=TRUE)
-		#avg_tip_vol = mean(branches[child_tips,]$VOLUME, na.rm=TRUE)
-		branch$VOL_MEAN = branch$V_TOT / avg_tip_vol
-		branch$TIPS_MEAN = avg_tip_vol
+		branch$TIPS_MEAN = gm_mean(branches[child_tips,]$RAW_TIPS_VOL, na.rm=TRUE)
+		branch$TIPS_VAR = var(branches[child_tips,]$RAW_TIPS_VOL, na.rm=TRUE)
+
+		#Sample standard deviation divided by sample geometric mean - simplest form of CV
+		branch$TIPS_CV = sqrt(branch$TIPS_VAR) / mean(branches[child_tips,]$RAW_TIPS_VOL, na.rm = TRUE)
+		# 'Geometric coefficient of variation' for log-normal data
+		#https://en.wikipedia.org/wiki/Coefficient_of_variation#Log-normal_data
+		branch$TIPS_GEO_CV = sqrt(exp(var(log(branches[child_tips,]$RAW_TIPS_VOL), na.rm = TRUE)) - 1)
+
+		#Expected number of terminal tips
+		branch$VOL_MEAN = branch$V_TOT / branch$TIPS_MEAN
+		
+		branch$RADS_MEAN = gm_mean(branches[child_tips,]$RADIUS, na.rm=TRUE)
+
 		if(radii[ind_1] > radii[ind_2])
 		{
 		  branch$FIB_R = radii[ind_2] / radii[ind_1]
@@ -191,10 +245,13 @@ asymmetric_branching <- function(id, branches, c_v, children)
 		  }
 		}		
 
-		#Average scale factors
-		r_c = (radii[ind_1] + radii[ind_2])/2
-		l_c = (lengths[ind_1] + lengths[ind_2])/2
-		
+		#Average scale factors - holdover from asymmetry analyses. Better way to do this?
+		#Different gamma for each child branch? Include more child branches in the average?
+		#r_c = (radii[ind_1] + radii[ind_2])/2
+		#l_c = (lengths[ind_1] + lengths[ind_2])/2
+		r_c = mean(radii)
+		l_c = mean(lengths, na.rm=TRUE)
+
 		#Difference scale factors
 		#if the node shows negative asymmetry, you'll have a negative difference factor
 		#Ensure length-difference factor is always positive by swapping indices above
@@ -241,17 +298,18 @@ asymmetric_branching <- function(id, branches, c_v, children)
 
 	  	#Use the same solution - use tip volumes instead 
 	  	#Won't this just reverse the logarithmic binning and give approx lambda (2)?
-		valid_subtree <- c(id,children)[which(branches[as.integer(c(id,children)),]$VOLUME > 0)]
-		slope = lm(log(TIPS_VOL)~BIN_ORDER, branches[valid_subtree,])
-	  	a_b_r = exp(abs(slope$coefficients[[2]]))
+		#valid_subtree <- c(id,children)[which(branches[as.integer(c(id,children)),]$VOLUME > 0)]
+		#slope = lm(log(TIPS_VOL)~BIN_ORDER, branches[valid_subtree,])
+	  	#a_b_r = exp(abs(slope$coefficients[[2]]))
 	  	#if(is.na(a_b_r)) Sometimes parents/children occupy the same bin
 	  	#{
 	  	#	print(branch)
 	  	#	print(slope)
 	  	#	print(branch_dist)
 	  	#}
-	  	branch$N_ASYM = log(branch$TIPS) / log(a_b_r)
-	  	branch$A_BR = a_b_r
+	  	#branch$N_ASYM = log(branch$TIPS) / log(a_b_r)
+	  	#branch$A_BR = a_b_r
+	  	branch$N_ASYM = NA
 	  }
 	  else
 	  {
@@ -266,8 +324,10 @@ asymmetric_branching <- function(id, branches, c_v, children)
 	return (list("data"=branches, "c_v"=c_v, "children"=children))
 }
 
-##These nodal equations are derived from infinite-network assumptions and so display problematic asymptotic behavior
-##Use at your own risk
+basic_wbe <- function(beta, gamma)
+{
+	return(-log(2) / log(beta*beta*gamma))
+}
 
 ##Node-based theta from Bentley et al 2013. Robust to higher-order branching (trifurcations) if needed
 ##Assumes symmetry by using 'average scale factors', in Brummer's terminology
@@ -301,10 +361,6 @@ finite_size_analysis <- function(subtree)
   return(list("wbe"=wbe, "asym"=asym, "N"=N))
 }
 
-#Remember - every 2 here is a branching ratio that might be replaced
-#Every 2^N is the number of tips in our networks - network size, and
-#we're throwing away data on variation in volume. None of this theory
-#is well-suited to empirical parameterization - that's your job.
 asymptotic_formula <- function(volumetric_scaling, N)
 {
   if(volumetric_scaling <= 0.99) #Large network expression - heuristic threshold to protect against asymptotic behavior
@@ -325,7 +381,7 @@ gm_mean = function(x, na.rm=TRUE){
 }
 
 #Any tree-level parameter we need to compute from branches
-whole_tree_scaling <- function(branches, verbose_report = TRUE)
+whole_tree_scaling <- function(branches)
 {
   #Make subsets of the branch network for various analyses...
   tips <- which(branches$TIPS == 1)
@@ -374,6 +430,13 @@ whole_tree_scaling <- function(branches, verbose_report = TRUE)
   N_MIN = branches[1,]$N_MIN
   N_MAX = branches[1,]$N_MAX
   
+  #Tree-level variance in the size of terminal tips
+  tips_mean = branches[1,]$TIPS_MEAN
+  #tips_var = mean(branches[non_tips,]$TIPS_VAR, na.rm=TRUE)
+  tips_var = branches[1,]$TIPS_VAR
+  tips_cv = mean(branches[non_tips,]$TIPS_CV, na.rm=TRUE)
+  tips_geo_cv = mean(branches[non_tips,]$TIPS_GEO_CV, na.rm=TRUE)
+  
   #Path fraction (avg L / max L) - Excluding nodes could be affecting this
   avg_L <- mean(branches[tips,]$L_TOT, na.rm = TRUE)
   max_L <- max(branches[tips,]$L_TOT, na.rm = TRUE)
@@ -387,7 +450,21 @@ whole_tree_scaling <- function(branches, verbose_report = TRUE)
   fib_l = mean(branches[non_tips,]$FIB_L, na.rm = TRUE)
 
   beta = mean(branches[valid_nodes,]$BETA, na.rm = TRUE)
+  beta_unfiltered = mean(branches$BETA, na.rm = TRUE)
+  beta_ci = t.test(branches[valid_nodes,]$BETA, mu=0.7071)
+  beta_ci_min = beta_ci$conf.int[1]
+  beta_ci_max = beta_ci$conf.int[2]
+
   gamma = mean(branches[valid_nodes,]$GAMMA, na.rm = TRUE)
+  inf = which(branches$GAMMA == Inf)
+  gamma_unfiltered = -1
+  if(length(inf) > 0)
+  	gamma_unfiltered = mean(branches$GAMMA[-inf], na.rm = TRUE)
+  else
+  	gamma_unfiltered = mean(branches$GAMMA, na.rm = TRUE)
+  gamma_ci = t.test(branches[valid_nodes,]$GAMMA, mu=0.7938)
+  gamma_ci_min = gamma_ci$conf.int[1]
+  gamma_ci_max = gamma_ci$conf.int[2]
 
   #No straightforward way to average D_BETA - but arithmetic is fine because radial asymmetry is usually small
   d_beta = mean(abs(branches[valid_nodes,]$D_BETA), na.rm = TRUE)
@@ -404,31 +481,55 @@ whole_tree_scaling <- function(branches, verbose_report = TRUE)
   vol_scaling = sym_vol + asym_vol
   node_asym = mean(branches[valid_nodes,]$THETA, na.rm=TRUE)
   
+  simple_theta = basic_wbe(beta, gamma)
   wbe = asymptotic_formula(sym_vol, N)
   asym = asymptotic_formula(vol_scaling, N)
   
-  #finite_size_correction = (1 / (1 + (1/4)*(branching_ratio*num_tips)^(-1/3)))  
   #Standardize data for regressions - normalize and scale so that we can compare everything
   branches[non_tips,]$V_TOT <- branches[non_tips,]$V_TOT / min(branches[non_tips,]$V_TOT)
   branches[non_tips,]$VOL_MEAN <- branches[non_tips,]$VOL_MEAN / min(branches[non_tips,]$VOL_MEAN)
   branches[non_tips,]$TIPS_VOL <- branches[non_tips,]$TIPS_VOL / min(branches[non_tips,]$TIPS_VOL)
-  branches[non_tips,]$TIPS <- (branches[non_tips,]$TIPS / 2)
-  #TIPS on the same scale as tip volume for comparng regressions - scaling the axes won't matter for log-log regressions - right?
-  #tip_vol_factor = (max(branches[non_tips,]$TIPS_VOL)/max(branches[non_tips,]$TIPS))
-  #branches[non_tips,]$TIPS <- branches[non_tips,]$TIPS * tip_vol_factor
+  #TIPS on the same scale as tip volume for comparng regressions - scaling the axes won't matter for log-log regressions
+  branches[non_tips,]$TIPS <- (branches[non_tips,]$TIPS / 2) 
+  
+  empirical_vol = sma(formula=log(TIPS_VOL)~log(V_TOT), data=branches[non_tips,], method="SMA")
+  ci_vol = empirical_vol$slopetest[[1]]$ci
+  branches$PRED_VOL <- NA
+  branches[non_tips,]$PRED_VOL = empirical_vol$coef[[1]][1][1,] + (log(branches[non_tips,]$V_TOT) * empirical_vol$coef[[1]][1][2,])
+  empirical_vol = empirical_vol$coef[[1]][2,1]  
+
+  raw_empirical_vol = sma(formula=log(RAW_TIPS_VOL)~log(RAW_V_TOT), data=branches[non_tips,], method="SMA")
+  branches$RAW_PRED_VOL <- NA
+  branches[non_tips,]$RAW_PRED_VOL = raw_empirical_vol$coef[[1]][1][1,] + (log(branches[non_tips,]$RAW_V_TOT) * raw_empirical_vol$coef[[1]][1][2,])
+  empirical_elevation = raw_empirical_vol$coef[[1]][1,1]
+
+  ### Failed analyses I'm too afraid to delete
+
+  tips_volume_mean = sma(formula=log(TIPS_VOL/TIPS)~log(TIPS_MEAN), data=branches[non_tips,], method="SMA")
+  branches$PRED_TVM <- NA
+  branches[non_tips,]$PRED_TVM = (tips_volume_mean$coef[[1]][1][1,]) + (log(branches[non_tips,]$TIPS_MEAN) * tips_volume_mean$coef[[1]][1][2,])
+  tips_volume_mean = tips_volume_mean$coef[[1]][2,1]
+
+  tips_branch_ratio = sma(formula=log(TIPS_VOL/TIPS_MEAN)~log(TIPS), data=branches[non_tips,], method="SMA")
+  branches$PRED_BR <- NA
+  branches[non_tips,]$PRED_BR = (tips_branch_ratio$coef[[1]][1][1,]) + (log(branches[non_tips,]$TIPS) * tips_branch_ratio$coef[[1]][1][2,])
+  tips_branch_ratio = tips_branch_ratio$coef[[1]][2,1]
+
+  tips_volume = sma(formula=log((TIPS_MEAN^(tips_volume_mean))*(TIPS^(tips_branch_ratio)))~log(TIPS_VOL), data=branches[non_tips,], method="SMA")
+  branches$PRED_TV <- NA
+  branches[non_tips,]$PRED_TV = (tips_volume$coef[[1]][1][1,]) + (log(branches[non_tips,]$TIPS_VOL) * tips_volume$coef[[1]][1][2,])
+  tips_volume = tips_volume$coef[[1]][2,1]
 
   empirical = sma(formula=log(TIPS)~log(V_TOT), data=branches[non_tips,], method="SMA")
   ci = empirical$slopetest[[1]]$ci
   branches$PRED <- NA
   branches[non_tips,]$PRED = (empirical$coef[[1]][1][1,]) + (log(branches[non_tips,]$V_TOT) * empirical$coef[[1]][1][2,])
   empirical = empirical$coef[[1]][2,1]
-
-  #Don't fit terminal tips for empirical regressions so that data is 'independent'
-  empirical_vol = sma(formula=log(TIPS_VOL)~log(V_TOT), data=branches[non_tips,], method="SMA")
-  ci_vol = empirical_vol$slopetest[[1]]$ci
-  branches$PRED_VOL <- NA
-  branches[non_tips,]$PRED_VOL = empirical_vol$coef[[1]][1][1,] + (log(branches[non_tips,]$V_TOT) * empirical_vol$coef[[1]][1][2,])
-  empirical_vol = empirical_vol$coef[[1]][2,1]  
+	
+  corrected_empirical = sma(formula=log((TIPS_MEAN^(tips_volume_mean))*(TIPS^(tips_branch_ratio)))~log(V_TOT), data=branches[non_tips,], method="SMA")
+  branches$PRED_CE <- NA
+  branches[non_tips,]$PRED_CE = corrected_empirical$coef[[1]][1][1,] + (log(branches[non_tips,]$V_TOT) * corrected_empirical$coef[[1]][1][2,])
+  corrected_empirical = corrected_empirical$coef[[1]][2,1]	  
 
   empirical_vol_mean= sma(formula=log(TIPS)~log(VOL_MEAN), data=branches[non_tips,], method="SMA")
   ci_ma = empirical_vol_mean$slopetest[[1]]$ci
@@ -446,30 +547,17 @@ whole_tree_scaling <- function(branches, verbose_report = TRUE)
   branches[non_tips,]$PRED_MEAN = empirical_tip_mean$coef[[1]][1][1,] + (log(branches[non_tips,]$V_TOT) * empirical_tip_mean$coef[[1]][1][2,])
   empirical_tip_mean = empirical_tip_mean$coef[[1]][2,1]  
 
-  if(verbose_report)
-  {
-    print("Finite network correction assuming bifurcation...")
-    print(paste("Inferred network generations:", N))
-    print(paste("1-labeled terminal elements", length(tips)))
-    print(paste("Trunk-distal tips", num_tips))
-    print(paste("Tip discrepancy", length(tips) - branches[1,]$TIPS))
-    
-    print(paste("Only using valid nodes for whole-tree scaling:", nrow(branches)))
-    
-    print(paste("Average beta:", beta))
-    print(paste("Average gamma:", gamma))
-    print(paste("Average d_beta:", d_beta))
-    print(paste("Average d_gamma:", d_gamma))
-    
-    print(paste("Symmetric volume scaling:", sym_vol))
-    print(paste("Asymmetric volume scaling:", asym_vol))
-  }
+  normalisation = branches[1,]$RAW_TIPS_VOL / (branches[1,]$RAW_V_TOT ^ empirical_vol)
+
   #This should always be returning simple scalar summary stats
-  return(list("beta"=beta, "gamma"=gamma, "d_beta"=d_beta, "d_gamma"=d_gamma, "fib_r" = fib_r, "fib_l"=fib_l,  
-              "wbe"=wbe, "node_wbe"=node_wbe, "asym"=asym, "node_asym"=node_asym, 
-			  "sym_vol" = sym_vol, "asym_vol" = asym_vol, "network_n"=N_SYM, "n_asym"=N_ASYM,
-			  "n_mean"=N_MEAN, "n_min"=N_MIN, "n_max"=N_MAX,
-			  "empirical"=empirical, "empirical_vol"=empirical_vol, "empirical_vol_mean"=empirical_vol_mean,
+  return(list("beta"=beta, "beta_ci_min"=beta_ci_min, "beta_ci_max"=beta_ci_max, "gamma"=gamma, "gamma_ci_min"=gamma_ci_min, "gamma_ci_max"=gamma_ci_max, 
+  			  "d_beta"=d_beta, "d_gamma"=d_gamma, "fib_r" = fib_r, "fib_l"=fib_l, 
+  			  "simple_theta"=simple_theta, "wbe"=wbe, "node_wbe"=node_wbe, "asym"=asym, "node_asym"=node_asym, "sym_vol" = sym_vol, "asym_vol" = asym_vol, 
+  			  "network_n"=N_SYM, "n_asym"=N_ASYM, "n_mean"=N_MEAN, "n_min"=N_MIN, "n_max"=N_MAX, 
+  			  "tips_mean"=tips_mean, "tips_variance"=tips_var, "tips_cv"=tips_cv, "tips_geo_cv"=tips_geo_cv,
+			  "tips_volume"=tips_volume, "tips_volume_mean"=tips_volume_mean, "tips_branch_ratio"=tips_branch_ratio,
+			  "empirical"=empirical, "empirical_corrected"=corrected_empirical, "empirical_vol"=empirical_vol, 
+			  "empirical_elevation"=empirical_elevation, "normalisation"=normalisation, "empirical_vol_mean"=empirical_vol_mean,
 			  "empirical_vol_tip"=empirical_vol_tip, "empirical_tip_mean"=empirical_tip_mean,
 			  "ci_min"=ci[1], "ci_max"=ci[2], "ci_vol_min"=ci_vol[1], "ci_vol_max"=ci_vol[2],
 			  "ci_ma_min"=ci_ma[1], "ci_ma_max"=ci_ma[2], "path_frac"=path_frac, "asym_frac"=asym_frac, 
@@ -484,27 +572,25 @@ branching_analysis <- function(branches, verbose_report = TRUE)
 	
 	non_zero <- which(branches$VOLUME > 0)
 	min_element <<- min(branches[non_zero,]$VOLUME)
-	print(min_element)
 
 	#Initiate recursion to process the network
 	out <- asymmetric_branching(1, branches, 0, c())
 	branches <- out$data
 	
 	#Compute whole-tree scaling ratios - compare to average scaling ratios from nodes	
-	scaling = whole_tree_scaling(branches, verbose_report)
+	scaling = whole_tree_scaling(branches)
 	branches <- scaling$preds_tips
   	scaling <- scaling[-length(scaling)] #Get rid of last element there
   	
-  if(verbose_report)
-  {
-    print(paste("Volume pruned: ", out$c_v))
-    print(paste("Total volume after pruning: ", branches[1,]$V_TOT))
-    
-    print(paste("Delinquent thetas: ", length(which(branches$INVALID))))
-    print(paste("Candidate thetas: ", nrow(subset(branches, TIPS>1)))) 
-    
-    print(scaling)
-  }
+	  if(verbose_report)
+	  {
+	    print(paste("Volume pruned: ", out$c_v))
+	    print(paste("Total volume after pruning: ", branches[1,]$V_TOT))
+	    
+	    print(paste("Percent invalid nodes: ", length(which(branches$INVALID)) / nrow(subset(branches, TIPS>1)) ))
+	    
+	    print(scaling)
+	  }
   
 	return (list("branches"=branches, "scaling"=scaling))
 }

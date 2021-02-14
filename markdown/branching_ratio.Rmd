@@ -1,0 +1,78 @@
+---
+title: "Branching ratios in LiDAR scanned trees"
+output: pdf_document
+header_includes: \usepackage{amsmath}
+---
+
+```{r setup, include=FALSE}
+source("../plot.R")
+knitr::opts_chunk$set(echo = FALSE)
+knitr::opts_chunk$set(message = FALSE)
+knitr::opts_chunk$set(warning = FALSE)
+#knitr::opts_chunk$set(out.width = '800px')
+```
+
+In the context of the WBE framework, the parameter $n$ describes the branching ratio. This parameter, also called the furcation number, describes how volume is partitioned as vascular networks ramify down to smaller and smaller size classes. One physiological interpretation is that $n$ is an integer, leading to a convenient representation of the vascular network hierarchy
+
+\begin{equation}
+n_{k} = nn_{k+1} 
+\end{equation}
+
+where $n_{k}$ is the number of vascular tubes at level $k$. Thus, the branching ratio is the source of self-similarity in WBE networks and defines other geometric self-similarities in the form of branching traits. Previous iterations of the WBE model have assumed that $n = 2$, which is the case of a perfectly symmetrical bifurcating network. Most trees in nature appear to bifurcate regularly (as opposed to trifurcation, etc.), but the branching ratio has posed an obstacle to asymmetrical formulations of WBE by helping enforce the equal distribution of parent volume/mass between child branches.
+
+Our goal here is to explore the definition of the branching ratio, its relationship with other quantities in vascular networks, and quantify these within LiDAR scanned trees. One import expression states the number of terminal tips of a network in terms of the branching ratio and the maximum number of ramifications, or branching generations $N$ within a tree
+
+\begin{equation} \label{eq:2}  
+n_{N} = n^{N}
+\end{equation}
+
+The quantities $n_{N}$ and $N$ are directly available from LiDAR scans before invoking any assumptions from WBE. From there, we can compute the branching ratio for each subtree by rearranging \ref{eq:2} as
+
+\begin{equation} 
+n = n_{N}^{1/N}
+\end{equation} 
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+faceted_branching_ratio_distributions(cylinder_data)
+```
+
+This method shows branching ratios universally below $n=2$, which would indicate that trees generally lack the number of terminal tip elements predicted by the WBE framework, which we've already seen is an important source of asymmetry in these data.
+An alternative view of the branching ratio parameter is that it is a tree-level parameter, which generally relates the number of terminal tips of a tree $n_{N}$ to the total depth of the tree ($N$) in the same way as in \ref{eq:2}. In this case, we calculate $n$ as a regression of terminal tips against the depth of each subtree within a single network:
+
+\begin{equation} \label{eq:3}  
+log(n_{N}) / N = n
+\end{equation}
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+faceted_whole_tree_branching_ratio(cylinder_data)
+```
+
+This approach yields even lower branching ratios, universally $n < 1$ in this case. Interestingly, we can recover branching ratios in the neighborhood of the method given by \ref{eq:2} by replacing the number of terminal tips $n_{N} in \ref{eq:3} with the volume of terminal tips $V_{N}$:
+
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+f_w_t_b_r_t_v(cylinder_data)
+```
+
+Clearly we must reckon with branching ratios less than the idealized $n = 2$ case. Next, we should try to observe the effect of variation in the furcation ratio on our predictions for metabolic scaling.
+
+We should expect our branch scaling parameters to exhibit scaling ratios closer to 1 as the branching ratio approaches 1. Branching ratios at or below 1 would not intuitively correspond to bifurcation in the network, instead approximating a linear network of equivalent (or progressively larger) cylinders. We can ask whether this *a priori* knowledge of branching ratios should affect our predictions for the average values of branching traits across trees in the dataset. These include the following parameters for the scaling of radius and length across branching generations:
+
+$$\beta = n^{1/2},		\gamma = n^{1/3}$$
+
+The following plot shows predicted and observed branching ratios as a function of the branching ratio $n$. We measure the branching ratio for each tree following the method in \ref{eq:3}:
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+plot_branch_ratio_variation(tree_data, cylinder_data)
+``` 
+
+The branching ratio also independently affects the formula for the metabolic scaling exponent:
+
+\begin{equation} \label{eq:4}  
+-\frac{log(n)}{log(\beta^{2}\gamma)} = \theta
+\end{equation}
+```{r, echo = FALSE, fig.width=12, fig.height=10}
+plot_three_parameter_theta(tree_data)
+``` 
+This plot shows that a reduction in the scaling ratio ($n < 2$) will not move predictions for metabolic scaling closer to 3/4. It would move theta, beta and gamma being equal, away from the optimal contour. However, as we have seen, changing the branching ratio also changes our predictions for scaling ratios.
+Therefore, the joint effects of $n$ on $\beta, \gamma, and \theta$ are difficult to understand.
+
+A major issue is that the single parameter $n$ represents the average behavior of child branches, which may behave in vastly different ways according to the asymmetrical branching rules. This is evident from the fact that, for values of $n < 2$, we expect to observe larger scaling parameters (closer to 1, where parent and child branches are identical). Instead, our dataset of natural, asymmetrical trees exhibits scale factors (especially length scaling factors) lower than those predicted by the WBE framework. This is partially compensated for by asymmetrical scale factors, but these newer factors lack an explicit definition in terms of any generalized branching ratio, instead depending on cases where $n = 2$.
